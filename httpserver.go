@@ -16,7 +16,7 @@ import (
 type stub struct {
 	_pattern   string
 	_dir       string
-	_filter    *filter
+	_filter    *Filter
 	_handler   func(ResponseWriter, *Request)
 	_processor thrift.TProcessor
 }
@@ -53,12 +53,12 @@ func (this *tlnet) AddProcessor(pattern string, processor thrift.TProcessor) {
 }
 
 //处理动态请求
-func (this *tlnet) AddHandlerFunc(pattern string, f *filter, handlerFunc func(ResponseWriter, *Request)) {
+func (this *tlnet) AddHandlerFunc(pattern string, f *Filter, handlerFunc func(ResponseWriter, *Request)) {
 	this._handlers = append(this._handlers, &stub{_pattern: pattern, _filter: f, _handler: handlerFunc})
 }
 
 //处理静态页面
-func (this *tlnet) AddStaticHandler(pattern string, dir string, f *filter, handlerFunc func(ResponseWriter, *Request)) {
+func (this *tlnet) AddStaticHandler(pattern string, dir string, f *Filter, handlerFunc func(ResponseWriter, *Request)) {
 	if !strings.HasSuffix(pattern, "/") {
 		pattern = fmt.Sprint(pattern, "/")
 	}
