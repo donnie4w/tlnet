@@ -14,13 +14,13 @@ func Test_tlnet(t *testing.T) {
 	tlnet.DBPath("test.db")
 	tlnet.SetMaxBytesReader((1 << 20) * 50)
 	tlnet.AddHandlerFunc("/aaa", nil, aaa)
-	tlnet.AddHandlerFunc("/bbb", notFoundfilter(), aaa)
+	tlnet.AddHandlerFunc("/bbb", notFoundFilter(), aaa)
 	tlnet.AddProcessor("/ppp", nil)
 	tlnet.AddStaticHandler("/", "test.db", staticFilter(), nil)
 	tlnet.HttpStart(8080)
 }
 
-func notFoundfilter() *filter {
+func notFoundFilter() *Filter {
 	f := NewFilter()
 	f.AddNotFoundPageIntercept(notFound)
 	return f
@@ -40,7 +40,7 @@ func notFound(w ResponseWriter, r *Request) bool {
 }
 
 //后缀为.html的过滤器
-func suffixfilter() *filter {
+func suffixFilter() *Filter {
 	f := NewFilter()
 	f.AddSuffixIntercept([]string{"html"}, suffixIntercept)
 	return f
@@ -51,7 +51,7 @@ func suffixIntercept(w ResponseWriter, r *Request) bool {
 	return true
 }
 
-func staticFilter() *filter {
+func staticFilter() *Filter {
 	f := NewFilter()
 	f.AddNotFoundPageIntercept(permission)
 	f.AddGlobalIntercept("[ab]", globalIntercept)
