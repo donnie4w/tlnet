@@ -1,4 +1,4 @@
-module tlnet
+module github.com/donnie4w/tlnet
 
 go 1.18
 
