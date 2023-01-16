@@ -11,7 +11,7 @@ import (
 
 func Test_tlnet(t *testing.T) {
 	tlnet := NewTlnet()
-	tlnet.DBPath("test.db")
+	// tlnet.DBPath("test.db")
 	tlnet.SetMaxBytesReader((1 << 20) * 50)
 	tlnet.AddHandlerFunc("/aaa", nil, aaa)
 	tlnet.AddHandlerFunc("/bbb", notFoundFilter(), aaa)

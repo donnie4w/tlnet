@@ -71,15 +71,12 @@ func (this *tlnet) HttpStart(port int32) {
 		InitDB(this._dbPath)
 	}
 	for _, s := range this._processors {
-		logging.Debug("------------->>>>>_processors")
 		http.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: this._maxBytes, _stub: s}))
 	}
 	for _, s := range this._handlers {
-		logging.Debug("------------->>>>>_handlers")
 		http.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: this._maxBytes, _stub: s}))
 	}
 	for _, s := range this._staticHandlers {
-		logging.Debug("------------->>>>>_staticHandlers")
 		http.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: this._maxBytes, _stub: s, _h: http.FileServer(http.Dir(s._dir))}))
 	}
 	e := http.ListenAndServe(fmt.Sprint(":", port), nil)
@@ -104,14 +101,12 @@ func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	//只作用于静态页面上
 	if this._h != nil && this._stub._filter != nil && this._stub._filter.notFoundhandler != nil {
-		logging.Debug("----------------------->notFoundhandler")
 		dir := this._stub._dir
 		if !strings.HasSuffix(dir, "/") {
 			dir = fmt.Sprint(dir, "/")
 		}
 		if _, err := os.Stat(dir + path); os.IsNotExist(err) {
 			if this._stub._filter.notFoundhandler != nil && this._stub._filter.notFoundhandler(w, r) {
-				logging.Debug("----------------------->2")
 				return
 			}
 		}
@@ -119,13 +114,11 @@ func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if this._stub._filter != nil {
 		if len(this._stub._filter.suffixMap) > 0 {
-			logging.Debug("----------------------->0")
 			if this._stub._filter._processSuffix(path, w, r) {
 				return
 			}
 		}
 		if len(this._stub._filter.matchMap) > 0 {
-			logging.Debug("----------------------->1")
 			if this._stub._filter._processGlobal(path, w, r) {
 				return
 			}
@@ -133,16 +126,13 @@ func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if this._stub._processor != nil {
-		logging.Debug("----------------------->3")
 		processorHandler(w, r, this._stub._processor)
 		return
 	}
 	if this._stub._handler != nil {
-		logging.Debug("----------------------->4")
 		this._stub._handler(w, r)
 	}
 	if this._h != nil {
-		logging.Debug("----------------------->5")
 		this._h.ServeHTTP(w, r)
 	}
 }

@@ -6,7 +6,6 @@ import (
 	"io"
 	"regexp"
 
-	// "math/rand"
 	"net"
 	"net/http"
 	"os"
