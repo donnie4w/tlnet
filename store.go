@@ -93,3 +93,11 @@ func GetObjectByOrder[T any](_tablename, _idname string, startId, endId int32) (
 	}
 	return
 }
+
+func AddValue(key string, value []byte) error {
+	return SingleDB().Put([]byte(key), value)
+}
+
+func GetValue(key string) (value []byte, err error) {
+	return SingleDB().Get([]byte(key))
+}
