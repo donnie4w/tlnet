@@ -67,10 +67,9 @@ func (this *tlnet) AddStaticHandler(pattern string, dir string, f *Filter, handl
 
 //设置端口
 func (this *tlnet) HttpStart(port int32) {
-	if this._dbPath == "" {
-		this._dbPath = "tlnet.db"
+	if this._dbPath != "" {
+		InitDB(this._dbPath)
 	}
-	InitDB(this._dbPath)
 	for _, s := range this._processors {
 		logging.Debug("------------->>>>>_processors")
 		http.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: this._maxBytes, _stub: s}))
