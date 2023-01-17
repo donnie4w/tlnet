@@ -20,8 +20,8 @@ func (this *HttpContext) GetCookie(key string) (_r string, err error) {
 	err = er
 	return
 }
-func (this *HttpContext) SetCookie(k, v string) {
-	cookie := http.Cookie{Name: k, Value: v, Path: "/", MaxAge: 86400}
+func (this *HttpContext) SetCookie(k, v, path string, maxAge int) {
+	cookie := http.Cookie{Name: k, Value: v, Path: path, MaxAge: maxAge}
 	http.SetCookie(this.w, &cookie)
 }
 
