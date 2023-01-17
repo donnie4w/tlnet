@@ -142,8 +142,8 @@ func processorHandler(w ResponseWriter, r *Request, processor thrift.TProcessor)
 		protocolFactory := thrift.NewTJSONProtocolFactory()
 		transport := thrift.NewStreamTransport(r.Body, w)
 		ioProtocol := protocolFactory.GetProtocol(transport)
-		htpo := &httpObj{w, r}
-		s, err := processor.Process(context.WithValue(context.Background(), "httpObj", htpo), ioProtocol, ioProtocol)
+		hc := &HttpContext{w, r}
+		s, err := processor.Process(context.WithValue(context.Background(), "HttpContext", hc), ioProtocol, ioProtocol)
 		if !s {
 			logging.Error("err：", err)
 		}
