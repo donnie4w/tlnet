@@ -24,11 +24,11 @@ type DB struct {
 	dbname string
 }
 
-func InitDB(dbname string) (db *DB, err error) {
+func InitDB(dbname string) (*DB, error) {
 	db = new(DB)
 	db.dbname = dbname
-	err = db.openDB()
-	return
+	err := db.openDB()
+	return db, err
 }
 
 func (this *DB) openDB() (err error) {
