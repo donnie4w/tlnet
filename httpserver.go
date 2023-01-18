@@ -94,11 +94,9 @@ type httpHandler struct {
 func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	path := r.URL.Path
-	logging.Debug("path：", path)
 	if this._maxBytes > 0 {
 		r.Body = http.MaxBytesReader(w, r.Body, this._maxBytes)
 	}
-
 	//只作用于静态页面上
 	if this._h != nil && this._stub._filter != nil && this._stub._filter.notFoundhandler != nil {
 		dir := this._stub._dir
@@ -111,7 +109,6 @@ func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-
 	if this._stub._filter != nil {
 		if len(this._stub._filter.suffixMap) > 0 {
 			if this._stub._filter._processSuffix(path, w, r) {
