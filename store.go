@@ -101,3 +101,7 @@ func AddValue(key string, value []byte) error {
 func GetValue(key string) (value []byte, err error) {
 	return SingleDB().Get([]byte(key))
 }
+
+func DelKey(key string) (err error) {
+	return SingleDB().Del([]byte(key))
+}

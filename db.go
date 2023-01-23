@@ -5,6 +5,9 @@
 package tlnet
 
 import (
+	"io"
+	"os"
+
 	"github.com/donnie4w/simplelog/logging"
 
 	"github.com/syndtr/goleveldb/leveldb"
@@ -28,6 +31,9 @@ func InitDB(dbname string) (*DB, error) {
 	db = new(DB)
 	db.dbname = dbname
 	err := db.openDB()
+	if err == nil {
+		logging.Debug("init tlnet leveldb successful")
+	}
 	return db, err
 }
 
@@ -126,5 +132,74 @@ func (this *DB) GetIterLimit(prefix string, limit string) (datamap map[string][]
 	}
 	iter.Release()
 	err = iter.Error()
+	return
+}
+
+func (this *DB) Snapshot() (*leveldb.Snapshot, error) {
+	return this.db.GetSnapshot()
+}
+
+type BakStub struct {
+	Key   []byte
+	Value []byte
+}
+
+func (this *BakStub) copy(k, v []byte) {
+	this.Key, this.Value = make([]byte, len(k)), make([]byte, len(v))
+	copy(this.Key, k)
+	copy(this.Value, v)
+}
+
+func (this *DB) BackupToDisk(filename string, prefix []byte) error {
+	defer myRecover()
+	snap, err := this.Snapshot()
+	if err != nil {
+		return err
+	}
+	defer snap.Release()
+	bs := TraverseSnap(snap, prefix)
+	b, e := encoder(bs)
+	if e != nil {
+		return e
+	}
+	f, er := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+	if er != nil {
+		return er
+	}
+	defer f.Close()
+	_, er = f.Write(b)
+	return er
+}
+
+func RecoverBackup(filename string) (bs []*BakStub) {
+	defer myRecover()
+	f, er := os.Open(filename)
+	if er == nil {
+		defer f.Close()
+	} else {
+		return
+	}
+	buf, err := io.ReadAll(f)
+	if err == nil {
+		decoder(buf, &bs)
+	}
+	return
+}
+
+func TraverseSnap(snap *leveldb.Snapshot, prefix []byte) (bs []*BakStub) {
+	ran := new(util.Range)
+	if prefix != nil {
+		ran = util.BytesPrefix(prefix)
+	} else {
+		ran = nil
+	}
+	iter := snap.NewIterator(ran, nil)
+	defer iter.Release()
+	bs = make([]*BakStub, 0)
+	for iter.Next() {
+		ss := new(BakStub)
+		ss.copy(iter.Key(), iter.Value())
+		bs = append(bs, ss)
+	}
 	return
 }

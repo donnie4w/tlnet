@@ -31,13 +31,20 @@ func (this *Filter) AddSuffixIntercept(suffixs []string, _handler func(ResponseW
 }
 
 //通用拦截器 ，handler返回true则 不再进行其他流程判断，直接返回
-func (this *Filter) AddGlobalIntercept(_matchMap string, _handler func(ResponseWriter, *Request) bool) {
-	this.matchMap[_matchMap] = _handler
+func (this *Filter) AddGlobalIntercept(_pattern string, _handler func(ResponseWriter, *Request) bool) {
+	this.matchMap[_pattern] = _handler
 }
 
 //路径找不到拦截器 ，handler返回true则 不再进行其他流程判断，直接返回
 func (this *Filter) AddNotFoundPageIntercept(_handler func(ResponseWriter, *Request) bool) {
 	this.notFoundhandler = _handler
+}
+
+//过滤器增加拦截规则
+func (this *Filter) AddIntercept(_pattern string, handlerFunc func(hc *HttpContext) bool) {
+	this.matchMap[_pattern] = func(w ResponseWriter, r *Request) bool {
+		return handlerFunc(newHttpContext(w, r))
+	}
 }
 
 func (this *Filter) _processSuffix(uri string, w ResponseWriter, r *Request) bool {
