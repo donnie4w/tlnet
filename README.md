@@ -1,6 +1,6 @@
 ## tlnet
-###tlnet is a web framework written in Go.
-###简单说明
+### tlnet is a web framework written in Go.
+### 简单说明
 - tlnet基于go内置http服务封装.使开发可以在一般编程习惯下进行.
 - 定义了过滤器(拦截器)，和 业务逻辑的handler
 - 引入thrift，thrift对多种语言包括js都有很好的支持，当然，可以不用它.
@@ -12,25 +12,27 @@
 	// tlnet.DBPath("test.db")    
 	tlnet.SetMaxBytesReader((1 << 20) * 50) //设置请求body最大值，50M，无要求时不设置即可
 	//tlnet设置请求超时，读取超时等方法类同
+	//设置访问路径和逻辑处理方法
 	tlnet.Handle("/qq", handleFunc)
+	//设置静态资源访问
 	tlnet.StaticDir("/s", "static/html", nil)
 	tlnet.HttpStart(8080) 
 	//tlnet.HttpStartTLS(port int32, certFile, keyFile string)
 	
 	//curl http://127.0.0.1:8080/qq?name=test
-	
+	//逻辑处理方法的使用用例：
 	func handleFunc(hc *HttpContext) {
-	logging.Debug(hc.ReqInfo)  //打印http一般信息
-	/*GetParam()  获取GET请求的参数值*/
-	logging.Debug(hc.GetParam("name"))  //打印test  
-	logging.Debug(net.SplitHostPort(hc.ReqInfo.RemoteAddr))
-	/*返回hello tlnet*/
-	hc.ResponseString(http.StatusOK, "hello tlnet")
+		logging.Debug(hc.ReqInfo)  //打印http一般信息
+		/*GetParam()  获取GET请求的参数值*/
+		logging.Debug(hc.GetParam("name"))  //打印test  
+		logging.Debug(net.SplitHostPort(hc.ReqInfo.RemoteAddr))
+		/*返回hello tlnet*/
+		hc.ResponseString(http.StatusOK, "hello tlnet")
 	}
-打印结果：
-[DEBUG]2023/01/23 23:22:14 tlnet_test.go:47: &{ /qq?name=test GET 127.0.0.1:8080 127.0.0.1:54236 curl/7.83.1 map[Accept:[*/*] User-Agent:[curl/7.83.1]]}
-[DEBUG]2023/01/23 23:22:14 tlnet_test.go:48: test
-[DEBUG]2023/01/23 23:22:14 tlnet_test.go:51: 127.0.0.154236<nil>
+打印结果：<br/>
+[DEBUG]2023/01/23 23:22:14 tlnet_test.go:47: &{ /qq?name=test GET 127.0.0.1:8080 127.0.0.1:54236 curl/7.83.1 map[Accept:[*/*] User-Agent:[curl/7.83.1]]}<br/>
+[DEBUG]2023/01/23 23:22:14 tlnet_test.go:48: test<br/>
+[DEBUG]2023/01/23 23:22:14 tlnet_test.go:51: 127.0.0.154236<nil><br/>
 
 ### 方法说明：
 	   //pattern请求的路径，handlerFunc实现逻辑处理 
@@ -63,10 +65,10 @@
 	6.ParseFormFile(file multipart.File, fileHeader *multipart.FileHeader, savePath string) (fileName string, err error) //处理存储上传文件对象
 	7.FormFiles(key string) *multipart.Form  //获取上传多个文件对象
 	
-###以上是最上层方法，一般web开发时常用到
-###下面为上面方法的底层方法，同样可以使用：
+### 以上是最上层方法，一般web开发时常用到
+### 下面为上面方法的底层方法，同样可以使用：
 	 //加入thrift协议
-	 1.tlnet. AddProcessor(pattern string, processor thrift.TProcessor)
+	 1.tlnet.AddProcessor(pattern string, processor thrift.TProcessor)
 	 
 	 2.tlnet.AddHandlerFunc(pattern string, f *Filter, handlerFunc func(ResponseWriter, *Request))
 	 
@@ -78,9 +80,9 @@
 	 //路径未找到拦截器
 	 6.AddNotFoundPageIntercept(_handler func(ResponseWriter, *Request) bool)
 	  
-###数据操作
+### 数据操作
 	 tlnet.DBPath("test.db")
-	 //存储可序列号对象
+	 //存储可序列化对象
 	 tlnetAddObject(e any, _idname, _tablename string)
 	 
 	 AddObjectWithTableIdName(e any, tableIdName string)
@@ -96,7 +98,7 @@
 	 DelKey(key string) (err error) 
 	 //备份数据到硬盘
 	 (this *DB) BackupToDisk(filename string, prefix []byte)
-	//获取备份的数据
-	RecoverBackup(filename string) (bs []*BakStub)
-
+	 //获取备份的数据
+	 RecoverBackup(filename string) (bs []*BakStub)
+具体用例可以参考[tlnetDemo](https://github.com/donnie4w/tlnetDemo "tlnetDemo")
 ### End
