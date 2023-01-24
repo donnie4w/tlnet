@@ -47,6 +47,10 @@ func (this *HttpContext) SetCookie2(cookie *http.Cookie) {
 	http.SetCookie(this.w, cookie)
 }
 
+func (this *HttpContext) MaxBytesReader(_max int64) {
+	this.r.Body = http.MaxBytesReader(this.w, this.r.Body, _max)
+}
+
 func myRecover() {
 	if err := recover(); err != nil {
 		logging.Error(err)
