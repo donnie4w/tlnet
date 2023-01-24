@@ -101,10 +101,10 @@ func (this *HttpContext) GetOutputStream() io.Writer {
 	return this.w
 }
 
-func ParseFormFile(file multipart.File, fileHeader *multipart.FileHeader, savePath string) (fileName string, err error) {
+func ParseFormFile(file multipart.File, fileHeader *multipart.FileHeader, savePath, namePrefix string) (fileName string, err error) {
 	defer myRecover()
 	defer file.Close()
-	f, er := os.Create(fmt.Sprint(savePath, "/", fileHeader.Filename))
+	f, er := os.Create(fmt.Sprint(savePath, "/", namePrefix, fileHeader.Filename))
 	err = er
 	if err == nil {
 		fileName = fileHeader.Filename
