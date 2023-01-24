@@ -14,12 +14,22 @@ import (
 	"github.com/donnie4w/simplelog/logging"
 )
 
+type TTYPE int
+
+const (
+	_ TTYPE = iota
+	JSON
+	BINARY
+	COMPACT
+)
+
 type stub struct {
 	_pattern   string
 	_dir       string
 	_filter    *Filter
 	_handler   func(ResponseWriter, *Request)
 	_processor thrift.TProcessor
+	_ttype     TTYPE
 }
 
 func NewTlnet() *tlnet {
@@ -111,7 +121,15 @@ func (this *tlnet) SetMaxBytesReader(maxBytes int64) {
 
 //处理thrift协议请求
 func (this *tlnet) AddProcessor(pattern string, processor thrift.TProcessor) {
-	this._processors = append(this._processors, &stub{_pattern: pattern, _processor: processor})
+	this._processors = append(this._processors, &stub{_pattern: pattern, _processor: processor, _ttype: JSON})
+}
+
+func (this *tlnet) AddBinaryProcessor(pattern string, processor thrift.TProcessor) {
+	this._processors = append(this._processors, &stub{_pattern: pattern, _processor: processor, _ttype: BINARY})
+}
+
+func (this *tlnet) AddCompactProcessor(pattern string, processor thrift.TProcessor) {
+	this._processors = append(this._processors, &stub{_pattern: pattern, _processor: processor, _ttype: COMPACT})
 }
 
 //处理动态请求
@@ -198,9 +216,8 @@ func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-
 	if this._stub._processor != nil {
-		processorHandler(w, r, this._stub._processor)
+		processorHandler(w, r, this._stub._processor, this._stub._ttype)
 		return
 	}
 	if this._stub._handler != nil {
@@ -212,15 +229,23 @@ func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func processorHandler(w ResponseWriter, r *Request, processor thrift.TProcessor) {
+func processorHandler(w ResponseWriter, r *Request, processor thrift.TProcessor, _ttype TTYPE) {
 	if "POST" == strings.ToUpper(r.Method) {
-		protocolFactory := thrift.NewTJSONProtocolFactory()
+		var protocolFactory thrift.TProtocolFactory
+		switch _ttype {
+		case JSON:
+			protocolFactory = thrift.NewTJSONProtocolFactory()
+		case BINARY:
+			protocolFactory = thrift.NewTBinaryProtocolFactoryDefault()
+		case COMPACT:
+			protocolFactory = thrift.NewTCompactProtocolFactory()
+		}
 		transport := thrift.NewStreamTransport(r.Body, w)
 		ioProtocol := protocolFactory.GetProtocol(transport)
 		hc := newHttpContext(w, r)
-		s, err := processor.Process(context.WithValue(context.Background(), "HttpContext", hc), ioProtocol, ioProtocol)
-		if !s {
-			logging.Error("err：", err)
+		_, err := processor.Process(context.WithValue(context.Background(), "HttpContext", hc), ioProtocol, ioProtocol)
+		if err != nil {
+			logging.Error("processorHandler Error:", err)
 		}
 	}
 }
