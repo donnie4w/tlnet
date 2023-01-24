@@ -93,11 +93,11 @@ func (this *HttpContext) FormFiles(key string) *multipart.Form {
 	return this.r.MultipartForm
 }
 
-func (this *HttpContext) GetInputStream() io.Reader {
-	return this.r.Body
+func (this *HttpContext) Request() *http.Request {
+	return this.r
 }
 
-func (this *HttpContext) GetOutputStream() io.Writer {
+func (this *HttpContext) Writer() io.Writer {
 	return this.w
 }
 
