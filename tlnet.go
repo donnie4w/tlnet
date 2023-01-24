@@ -97,7 +97,7 @@ func (this *HttpContext) Request() *http.Request {
 	return this.r
 }
 
-func (this *HttpContext) Writer() io.Writer {
+func (this *HttpContext) Writer() http.ResponseWriter {
 	return this.w
 }
 
