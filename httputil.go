@@ -14,6 +14,7 @@ type HttpInfo struct {
 	Host       string
 	RemoteAddr string
 	UserAgent  string
+	Referer    string
 	Header     http.Header
 }
 
@@ -25,7 +26,7 @@ type HttpContext struct {
 
 func newHttpContext(w http.ResponseWriter, r *http.Request) *HttpContext {
 	hi := new(HttpInfo)
-	hi.Header, hi.Host, hi.Method, hi.Path, hi.RemoteAddr, hi.Uri, hi.UserAgent = r.Header, r.Host, r.Method, r.URL.Path, r.RemoteAddr, r.RequestURI, r.UserAgent()
+	hi.Header, hi.Host, hi.Method, hi.Path, hi.RemoteAddr, hi.Uri, hi.UserAgent, hi.Referer = r.Header, r.Host, r.Method, r.URL.Path, r.RemoteAddr, r.RequestURI, r.UserAgent(), r.Referer()
 	return &HttpContext{w, r, hi}
 }
 

@@ -50,7 +50,7 @@ func (this *HttpContext) ResponseString(status int, _s string) (err error) {
 	return
 }
 
-// Get gets the first value associated with the given key.
+// GetParam gets the first value associated with the given key.
 // If there are no values associated with the key, Get returns
 // the empty string. To access multiple values, use the map
 // directly.
@@ -91,6 +91,14 @@ func (this *HttpContext) FormFile(key string) (multipart.File, *multipart.FileHe
 func (this *HttpContext) FormFiles(key string) *multipart.Form {
 	defer myRecover()
 	return this.r.MultipartForm
+}
+
+func (this *HttpContext) GetInputStream() io.Reader {
+	return this.r.Body
+}
+
+func (this *HttpContext) GetOutputStream() io.Writer {
+	return this.w
 }
 
 func ParseFormFile(file multipart.File, fileHeader *multipart.FileHeader, savePath string) (fileName string, err error) {
