@@ -330,9 +330,7 @@ func _selectoneFromId[T any](tablename string, _id int64) (_r *T) {
 }
 
 func SelectOneByIdxName[T any](idx_name, _idx_value string) (_r *T) {
-	if !strings.HasSuffix(idx_name, "_") {
-		idx_name = fmt.Sprint(idx_name, "_")
-	}
+	idx_name = parseIdxName(idx_name)
 	var a T
 	tname := getObjectName(a)
 	idxSeqName := idx_seq(tname, fmt.Sprint(idx_name, _idx_value))
@@ -353,9 +351,7 @@ func SelectOneByIdxName[T any](idx_name, _idx_value string) (_r *T) {
 }
 
 func SelectByIdxName[T any](idx_name, _idx_value string) (_r []*T) {
-	if !strings.HasSuffix(idx_name, "_") {
-		idx_name = fmt.Sprint(idx_name, "_")
-	}
+	idx_name = parseIdxName(idx_name)
 	var a T
 	tname := getObjectName(a)
 	_r = make([]*T, 0)
@@ -377,9 +373,7 @@ func SelectByIdxName[T any](idx_name, _idx_value string) (_r []*T) {
 }
 
 func SelectByIdxNameLimit[T any](idx_name string, idxValues []string, startId, limit int64) (_r []*T) {
-	if !strings.HasSuffix(idx_name, "_") {
-		idx_name = fmt.Sprint(idx_name, "_")
-	}
+	idx_name = parseIdxName(idx_name)
 	var a T
 	tname := getObjectName(a)
 	_r = make([]*T, 0)
@@ -414,6 +408,13 @@ func SelectByIdxNameLimit[T any](idx_name string, idxValues []string, startId, l
 		}
 	}
 	return
+}
+
+func parseIdxName(idx_name string) string {
+	if !strings.HasSuffix(idx_name, "_") {
+		idx_name = fmt.Sprint(idx_name, "_")
+	}
+	return strings.ToLower(idx_name)
 }
 
 /*key:tablename idx_name seq_value: user_id_1*/
