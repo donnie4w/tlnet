@@ -12,17 +12,17 @@ import (
 )
 
 type TestObj struct {
-	Id   int64
-	Name string
-	Age_ int32
+	Id    int64
+	Name_ string
+	Age_  int32
 }
 
 func Test_DB(t *testing.T) {
 	InitDB("test.db")
-	err := Insert(&TestObj{Name: "wuxiaodong", Age_: 215})
+	err := Insert(&TestObj{Name_: "wuxiaodong", Age_: 215})
 	fmt.Println("————————————————————————————————————————————", err)
-	err = Update(&TestObj{3, "aaaaaa", 111})
-	Delete(TestObj{Id: 3})
+	// err = Update(&TestObj{3, "aaaaaa", 111})
+	// Delete(TestObj{Id: 3})
 	// Delete(&TestObj{Id: 2})
 	ts := Selects[TestObj](0, 10)
 	for i, v := range ts {
@@ -31,7 +31,7 @@ func Test_DB(t *testing.T) {
 	logging.Debug("max idx==>", GetIdSeqValue[TestObj]())
 
 	fmt.Println("------------------------------------------------")
-	ts = SelectByIdxName[TestObj]("age", "111")
+	ts = SelectByIdxName[TestObj]("name", "wuxiaodong")
 	for i, v := range ts {
 		logging.Debug(i+1, "=====", v)
 	}
@@ -40,6 +40,8 @@ func Test_DB(t *testing.T) {
 	for i, v := range ts {
 		logging.Debug(i+1, "=========>", v)
 	}
+	o := SelectOneByIdxName[TestObj]("name", "dongdong")
+	logging.Debug("o==>", o)
 	fmt.Println("")
 	fmt.Println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 	IterDB()

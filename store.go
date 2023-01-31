@@ -295,11 +295,9 @@ func Delete(a any) (err error) {
 	_idx_key := idx_key(table_name, "id", _table_id_value)
 	DelKey(_idx_key)
 	_pte_key := pte_key(table_name, _table_id_value)
-	fmt.Println("1----->", _pte_key)
 	if bs, err := SingleDB().Get([]byte(_pte_key)); err == nil {
 		is := decodeIdx(bs)
 		for _, pte_idx_key := range is.IdxMap {
-			fmt.Println("1----->", pte_idx_key)
 			SingleDB().Del([]byte(pte_idx_key))
 		}
 	}
@@ -331,19 +329,42 @@ func _selectoneFromId[T any](tablename string, _id int64) (_r *T) {
 	return
 }
 
-func SelectByIdxName[T any](idxName string, idxValues string) (_r []*T) {
-	if !strings.HasSuffix(idxName, "_") {
-		idxName = fmt.Sprint(idxName, "_")
+func SelectOneByIdxName[T any](idx_name, _idx_value string) (_r *T) {
+	if !strings.HasSuffix(idx_name, "_") {
+		idx_name = fmt.Sprint(idx_name, "_")
 	}
 	var a T
 	tname := getObjectName(a)
-	_r = make([]*T, 0)
-	idxSeqName := idx_seq(tname, fmt.Sprint(idxName, idxValues))
+	idxSeqName := idx_seq(tname, fmt.Sprint(idx_name, _idx_value))
 	ids, err := SingleDB().Get([]byte(idxSeqName))
 	if err == nil && ids != nil {
 		id := BytesToInt64(ids)
 		for j := int64(1); j <= id; j++ {
-			_idx_key := idx_key(tname, fmt.Sprint(idxName, idxValues), j)
+			_idx_key := idx_key(tname, fmt.Sprint(idx_name, _idx_value), j)
+			idbuf, _ := SingleDB().Get([]byte(_idx_key))
+			tid := BytesToInt64(idbuf)
+			_r = _selectoneFromId[T](tname, tid)
+			if _r != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+func SelectByIdxName[T any](idx_name, _idx_value string) (_r []*T) {
+	if !strings.HasSuffix(idx_name, "_") {
+		idx_name = fmt.Sprint(idx_name, "_")
+	}
+	var a T
+	tname := getObjectName(a)
+	_r = make([]*T, 0)
+	idxSeqName := idx_seq(tname, fmt.Sprint(idx_name, _idx_value))
+	ids, err := SingleDB().Get([]byte(idxSeqName))
+	if err == nil && ids != nil {
+		id := BytesToInt64(ids)
+		for j := int64(1); j <= id; j++ {
+			_idx_key := idx_key(tname, fmt.Sprint(idx_name, _idx_value), j)
 			idbuf, _ := SingleDB().Get([]byte(_idx_key))
 			tid := BytesToInt64(idbuf)
 			t := _selectoneFromId[T](tname, tid)
@@ -355,9 +376,9 @@ func SelectByIdxName[T any](idxName string, idxValues string) (_r []*T) {
 	return
 }
 
-func SelectByIdxNameLimit[T any](idxName string, idxValues []string, startId, limit int64) (_r []*T) {
-	if !strings.HasSuffix(idxName, "_") {
-		idxName = fmt.Sprint(idxName, "_")
+func SelectByIdxNameLimit[T any](idx_name string, idxValues []string, startId, limit int64) (_r []*T) {
+	if !strings.HasSuffix(idx_name, "_") {
+		idx_name = fmt.Sprint(idx_name, "_")
 	}
 	var a T
 	tname := getObjectName(a)
@@ -367,7 +388,7 @@ func SelectByIdxNameLimit[T any](idxName string, idxValues []string, startId, li
 		if count <= 0 {
 			return
 		}
-		idxSeqName := idx_seq(tname, fmt.Sprint(idxName, v))
+		idxSeqName := idx_seq(tname, fmt.Sprint(idx_name, v))
 		ids, err := SingleDB().Get([]byte(idxSeqName))
 		if err == nil && ids != nil {
 			id := BytesToInt64(ids)
@@ -375,7 +396,7 @@ func SelectByIdxNameLimit[T any](idxName string, idxValues []string, startId, li
 				if count <= 0 {
 					return
 				}
-				_idx_key := idx_key(tname, fmt.Sprint(idxName, v), j)
+				_idx_key := idx_key(tname, fmt.Sprint(idx_name, v), j)
 				if SingleDB().Has([]byte(_idx_key)) {
 					if i < startId {
 						i++
