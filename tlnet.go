@@ -83,6 +83,12 @@ func (this *HttpContext) Redirect(path string) (err error) {
 	return
 }
 
+func (this *HttpContext) RedirectWithStatus(path string, status int) (err error) {
+	defer myRecover()
+	http.Redirect(this.w, this.r, path, http.StatusTemporaryRedirect)
+	return
+}
+
 func (this *HttpContext) FormFile(key string) (multipart.File, *multipart.FileHeader, error) {
 	defer myRecover()
 	return this.r.FormFile(key)

@@ -11,6 +11,49 @@ import (
 	"github.com/donnie4w/simplelog/logging"
 )
 
+type TestObj struct {
+	Id   int64
+	Name string
+	Age_ int32
+}
+
+func Test_DB(t *testing.T) {
+	InitDB("test.db")
+	err := Insert(&TestObj{Name: "wuxiaodong", Age_: 215})
+	fmt.Println("————————————————————————————————————————————", err)
+	err = Update(&TestObj{3, "aaaaaa", 111})
+	Delete(TestObj{Id: 3})
+	// Delete(&TestObj{Id: 2})
+	ts := Selects[TestObj](0, 10)
+	for i, v := range ts {
+		logging.Debug(i+1, "----", v)
+	}
+	logging.Debug("max idx==>", GetIdSeqValue[TestObj]())
+
+	fmt.Println("------------------------------------------------")
+	ts = SelectByIdxName[TestObj]("age", "111")
+	for i, v := range ts {
+		logging.Debug(i+1, "=====", v)
+	}
+	fmt.Println("------------------------------------------------")
+	ts = SelectByIdxNameLimit[TestObj]("age", []string{"215", "216", "333"}, 0, 2)
+	for i, v := range ts {
+		logging.Debug(i+1, "=========>", v)
+	}
+	fmt.Println("")
+	fmt.Println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+	IterDB()
+}
+
+func IterDB() {
+	keys, _ := SingleDB().GetKeys()
+	for i, v := range keys {
+		logging.Debug("key", i, "==", v)
+		value, _ := SingleDB().GetString([]byte(v))
+		logging.Debug(v, "==>", value)
+	}
+}
+
 func _Test_snap(t *testing.T) {
 	InitDB("test.db")
 	SingleDB().Put([]byte("d"), []byte("3"))
@@ -34,7 +77,7 @@ func _Test_tlnet(t *testing.T) {
 	tlnet.HttpStart(8080)
 }
 
-func Test_tlnet(t *testing.T) {
+func _Test_tlnet2(t *testing.T) {
 	tlnet := NewTlnet()
 	// tlnet.DBPath("test.db")
 	tlnet.SetMaxBytesReader((1 << 20) * 50)
@@ -82,6 +125,15 @@ func notFound(w ResponseWriter, r *Request) bool {
 func suffixFilter() *Filter {
 	f := NewFilter()
 	f.AddSuffixIntercept([]string{"html"}, suffixIntercept)
+	return f
+}
+
+func httpFilter() *Filter {
+	f := NewFilter()
+	f.AddIntercept(".html$", func(hc *HttpContext) bool {
+		hc.Redirect("https://github.com")
+		return true
+	})
 	return f
 }
 

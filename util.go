@@ -1,7 +1,9 @@
 package tlnet
 
 import (
+	"bytes"
 	"crypto/md5"
+	"encoding/binary"
 	"fmt"
 	"time"
 )
@@ -37,5 +39,17 @@ func Bytes2Octal(bb []byte) (value int32) {
 		ii := uint(b) << uint((3-i)*4)
 		value = value | int32(ii)
 	}
+	return
+}
+
+func Int64ToBytes(n int64) []byte {
+	bytesBuffer := bytes.NewBuffer([]byte{})
+	binary.Write(bytesBuffer, binary.BigEndian, n)
+	return bytesBuffer.Bytes()
+}
+
+func BytesToInt64(bs []byte) (_r int64) {
+	bytesBuffer := bytes.NewBuffer(bs)
+	binary.Read(bytesBuffer, binary.BigEndian, &_r)
 	return
 }
