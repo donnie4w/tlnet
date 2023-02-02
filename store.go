@@ -173,7 +173,7 @@ func getTableIdValue(a any) int64 {
 }
 
 func Insert(a any) (err error) {
-	if reflect.TypeOf(a).Kind() == reflect.Pointer {
+	if isPointer(a) {
 		table_name := getObjectName(a)
 		_table_id_value := GetAndSetId(idx_id_seq(table_name))
 		_idx_key := idx_id_key(table_name, _table_id_value)
@@ -274,7 +274,7 @@ func updatePteKey(a any, table_name string, _table_id_value int64) {
 }
 
 func Update(a any) (err error) {
-	if reflect.TypeOf(a).Kind() != reflect.Pointer {
+	if !isPointer(a) {
 		return errors.New("update object must be pointer")
 	}
 	table_name := getObjectName(a)
@@ -292,6 +292,19 @@ func Update(a any) (err error) {
 func Delete(a any) (err error) {
 	table_name := getObjectName(a)
 	_table_id_value := getTableIdValue(a)
+	return _delete(table_name, _table_id_value)
+}
+
+func DeleteWithId[T any](id int64) (err error) {
+	var a T
+	table_name := getObjectName(a)
+	return _delete(table_name, id)
+}
+
+func _delete(table_name string, _table_id_value int64) (err error) {
+	if _table_id_value == 0 {
+		return errors.New("The ID value for deletion is not set")
+	}
 	_idx_key := idx_id_key(table_name, _table_id_value)
 	DelKey(_idx_key)
 	_pte_key := pte_key(table_name, _table_id_value)
@@ -305,16 +318,30 @@ func Delete(a any) (err error) {
 	return
 }
 
+/*
+   start  :  table  start id
+   end    :  table  end id
+*/
 func Selects[T any](start, end int64) (_r []*T) {
 	var a T
+	if !isStruct(a) {
+		panic("type of genericity must be struct")
+	}
 	tname := getObjectName(a)
 	idxSeqName := idx_id_seq(tname)
 	_r = GetObjectByOrder[T](tname, idxSeqName, start, end)
 	return
 }
 
+/*
+  _id :  table id
+   one return
+*/
 func SelectOne[T any](_id int64) (_r *T) {
 	var a T
+	if !isStruct(a) {
+		panic("type of genericity must be struct")
+	}
 	tname := getObjectName(a)
 	_r = _selectoneFromId[T](tname, _id)
 	return
@@ -329,9 +356,17 @@ func _selectoneFromId[T any](tablename string, _id int64) (_r *T) {
 	return
 }
 
+/*
+  idx_name :  index name
+  _idx_value:  index value
+   one return
+*/
 func SelectOneByIdxName[T any](idx_name, _idx_value string) (_r *T) {
-	idx_name = parseIdxName[T](idx_name)
 	var a T
+	if !isStruct(a) {
+		panic("type of genericity must be struct")
+	}
+	idx_name = parseIdxName[T](idx_name)
 	tname := getObjectName(a)
 	idxSeqName := idx_seq(tname, idx_name, _idx_value)
 	ids, err := SingleDB().Get([]byte(idxSeqName))
@@ -350,9 +385,17 @@ func SelectOneByIdxName[T any](idx_name, _idx_value string) (_r *T) {
 	return
 }
 
+/*
+  idx_name :  index name
+  _idx_value:  index value
+   multiple return
+*/
 func SelectByIdxName[T any](idx_name, _idx_value string) (_r []*T) {
-	idx_name = parseIdxName[T](idx_name)
 	var a T
+	if !isStruct(a) {
+		panic("type of genericity must be struct")
+	}
+	idx_name = parseIdxName[T](idx_name)
 	tname := getObjectName(a)
 	_r = make([]*T, 0)
 	idxSeqName := idx_seq(tname, idx_name, _idx_value)
@@ -372,9 +415,18 @@ func SelectByIdxName[T any](idx_name, _idx_value string) (_r []*T) {
 	return
 }
 
+/*
+  idx_name :  index name
+  idxValues:  index value array
+  startId  :  start number
+  limit    :  maximum return number
+*/
 func SelectByIdxNameLimit[T any](idx_name string, idxValues []string, startId, limit int64) (_r []*T) {
-	idx_name = parseIdxName[T](idx_name)
 	var a T
+	if !isStruct(a) {
+		panic("type of genericity must be struct")
+	}
+	idx_name = parseIdxName[T](idx_name)
 	tname := getObjectName(a)
 	_r = make([]*T, 0)
 	i, count := int64(0), limit
@@ -412,6 +464,9 @@ func SelectByIdxNameLimit[T any](idx_name string, idxValues []string, startId, l
 
 func BuildIndex[T any]() (err error) {
 	var a T
+	if !isStruct(a) {
+		return errors.New("type of genericity must be struct")
+	}
 	table_name := getObjectName(a)
 	t := reflect.TypeOf(a)
 	mustBuild := false
@@ -461,7 +516,6 @@ func checkIndexField(field_name string, tag reflect.StructTag) (b bool) {
 
 func parseIdxName[T any](idx_name string) string {
 	if !strings.HasSuffix(idx_name, "_") {
-		// idx_name = fmt.Sprint(idx_name, "_")
 		var a T
 		t := reflect.TypeOf(a)
 		isTagIdx := false
@@ -481,6 +535,14 @@ func parseIdxName[T any](idx_name string) string {
 		}
 	}
 	return strings.ToLower(idx_name)
+}
+
+func isPointer(a any) bool {
+	return reflect.TypeOf(a).Kind() == reflect.Pointer
+}
+
+func isStruct(a any) bool {
+	return reflect.TypeOf(a).Kind() == reflect.Struct
 }
 
 /*index key:tablename idx_name seq_value: user_age_22_1*/
