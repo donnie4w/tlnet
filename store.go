@@ -94,7 +94,7 @@ func GetAndSetId(_idx_seq string) (id int64) {
 func GetIdSeqValue[T any]() (id int64) {
 	var a T
 	tname := getObjectName(a)
-	idxSeqName := idx_seq(tname, "id")
+	idxSeqName := idx_id_seq(tname)
 	ids, err := SingleDB().Get([]byte(idxSeqName))
 	if err == nil && ids != nil {
 		id = BytesToInt64(ids)
@@ -111,7 +111,7 @@ func GetObjectByOrder[T any](_tablename, _idx_id_name string, startId, count int
 	}
 	for i := startId; i < count; i++ {
 		if i <= id {
-			v, err := SingleDB().Get([]byte(idx_key(_tablename, "id", i)))
+			v, err := SingleDB().Get([]byte(idx_id_key(_tablename, i)))
 			if err == nil && v != nil {
 				t := new(T)
 				decoder(v, t)
@@ -175,8 +175,8 @@ func getTableIdValue(a any) int64 {
 func Insert(a any) (err error) {
 	if reflect.TypeOf(a).Kind() == reflect.Pointer {
 		table_name := getObjectName(a)
-		_table_id_value := GetAndSetId(idx_seq(table_name, "id"))
-		_idx_key := idx_key(table_name, "id", _table_id_value)
+		_table_id_value := GetAndSetId(idx_id_seq(table_name))
+		_idx_key := idx_id_key(table_name, _table_id_value)
 		v := reflect.ValueOf(a).Elem()
 		v.FieldByNameFunc(func(s string) bool {
 			return strings.ToLower(s) == "id"
@@ -194,7 +194,7 @@ func _saveIdx_(a any, tablename string, _table_id_value int64) {
 	v := reflect.ValueOf(a).Elem()
 	for i := 0; i < t.NumField(); i++ {
 		idxName := t.Field(i).Name
-		if strings.HasSuffix(idxName, "_") {
+		if checkIndexField(idxName, t.Field(i).Tag) {
 			f := v.FieldByName(idxName)
 			idx_value, e := getValueFromkind(f)
 			if e == nil {
@@ -223,10 +223,10 @@ func getValueFromkind(f reflect.Value) (v string, e error) {
 
 //key: tablename_idxName_idxValue_idSeq: idvalue
 func _insertWithTableId(table_name, idx_name, idx_value string, _table_id_value int64) (err error) {
-	_idx_id_value := GetAndSetId(idx_seq(table_name, fmt.Sprint(idx_name, idx_value)))
-	_idx_key := idx_key(table_name, fmt.Sprint(idx_name, idx_value), _idx_id_value)
+	_idx_seq_value := GetAndSetId(idx_seq(table_name, idx_name, idx_value))
+	_idx_key := idx_key(table_name, idx_name, idx_value, _idx_seq_value)
 	err = SingleDB().Put([]byte(_idx_key), Int64ToBytes(_table_id_value))
-	go putPteKey(table_name, idx_name, _idx_key, _table_id_value)
+	putPteKey(table_name, idx_name, _idx_key, _table_id_value)
 	return
 }
 
@@ -256,11 +256,11 @@ func updatePteKey(a any, table_name string, _table_id_value int64) {
 			})
 			new_idx_value, e := getValueFromkind(f)
 			if e == nil {
-				new_pre_idx_key := idx_key_prefix(table_name, fmt.Sprint(idx_name, new_idx_value))
+				new_pre_idx_key := idx_key_prefix(table_name, idx_name, new_idx_value)
 				if !strings.Contains(_idx_key, new_pre_idx_key) {
 					SingleDB().Del([]byte(_idx_key))
-					_idx_id_value := GetAndSetId(idx_seq(table_name, fmt.Sprint(idx_name, new_idx_value)))
-					new_idx_key := idx_key(table_name, fmt.Sprint(idx_name, new_idx_value), _idx_id_value)
+					_idx_seq_value := GetAndSetId(idx_seq(table_name, idx_name, new_idx_value))
+					new_idx_key := idx_key(table_name, idx_name, new_idx_value, _idx_seq_value)
 					err = SingleDB().Put([]byte(new_idx_key), Int64ToBytes(_table_id_value))
 					is.put(idx_name, new_idx_key)
 					reset = true
@@ -279,7 +279,7 @@ func Update(a any) (err error) {
 	}
 	table_name := getObjectName(a)
 	_table_id_value := getTableIdValue(a)
-	_idx_key := idx_key(table_name, "id", _table_id_value)
+	_idx_key := idx_id_key(table_name, _table_id_value)
 	if hasKey(_idx_key) {
 		AddObject(_idx_key, a)
 		go updatePteKey(a, table_name, _table_id_value)
@@ -292,7 +292,7 @@ func Update(a any) (err error) {
 func Delete(a any) (err error) {
 	table_name := getObjectName(a)
 	_table_id_value := getTableIdValue(a)
-	_idx_key := idx_key(table_name, "id", _table_id_value)
+	_idx_key := idx_id_key(table_name, _table_id_value)
 	DelKey(_idx_key)
 	_pte_key := pte_key(table_name, _table_id_value)
 	if bs, err := SingleDB().Get([]byte(_pte_key)); err == nil {
@@ -308,7 +308,7 @@ func Delete(a any) (err error) {
 func Selects[T any](start, end int64) (_r []*T) {
 	var a T
 	tname := getObjectName(a)
-	idxSeqName := idx_seq(tname, "id")
+	idxSeqName := idx_id_seq(tname)
 	_r = GetObjectByOrder[T](tname, idxSeqName, start, end)
 	return
 }
@@ -321,7 +321,7 @@ func SelectOne[T any](_id int64) (_r *T) {
 }
 
 func _selectoneFromId[T any](tablename string, _id int64) (_r *T) {
-	v, err := SingleDB().Get([]byte(idx_key(tablename, "id", _id)))
+	v, err := SingleDB().Get([]byte(idx_id_key(tablename, _id)))
 	if err == nil && v != nil {
 		_r = new(T)
 		decoder(v, _r)
@@ -330,15 +330,15 @@ func _selectoneFromId[T any](tablename string, _id int64) (_r *T) {
 }
 
 func SelectOneByIdxName[T any](idx_name, _idx_value string) (_r *T) {
-	idx_name = parseIdxName(idx_name)
+	idx_name = parseIdxName[T](idx_name)
 	var a T
 	tname := getObjectName(a)
-	idxSeqName := idx_seq(tname, fmt.Sprint(idx_name, _idx_value))
+	idxSeqName := idx_seq(tname, idx_name, _idx_value)
 	ids, err := SingleDB().Get([]byte(idxSeqName))
 	if err == nil && ids != nil {
 		id := BytesToInt64(ids)
 		for j := int64(1); j <= id; j++ {
-			_idx_key := idx_key(tname, fmt.Sprint(idx_name, _idx_value), j)
+			_idx_key := idx_key(tname, idx_name, _idx_value, j)
 			idbuf, _ := SingleDB().Get([]byte(_idx_key))
 			tid := BytesToInt64(idbuf)
 			_r = _selectoneFromId[T](tname, tid)
@@ -351,16 +351,16 @@ func SelectOneByIdxName[T any](idx_name, _idx_value string) (_r *T) {
 }
 
 func SelectByIdxName[T any](idx_name, _idx_value string) (_r []*T) {
-	idx_name = parseIdxName(idx_name)
+	idx_name = parseIdxName[T](idx_name)
 	var a T
 	tname := getObjectName(a)
 	_r = make([]*T, 0)
-	idxSeqName := idx_seq(tname, fmt.Sprint(idx_name, _idx_value))
+	idxSeqName := idx_seq(tname, idx_name, _idx_value)
 	ids, err := SingleDB().Get([]byte(idxSeqName))
 	if err == nil && ids != nil {
 		id := BytesToInt64(ids)
 		for j := int64(1); j <= id; j++ {
-			_idx_key := idx_key(tname, fmt.Sprint(idx_name, _idx_value), j)
+			_idx_key := idx_key(tname, idx_name, _idx_value, j)
 			idbuf, _ := SingleDB().Get([]byte(_idx_key))
 			tid := BytesToInt64(idbuf)
 			t := _selectoneFromId[T](tname, tid)
@@ -373,7 +373,7 @@ func SelectByIdxName[T any](idx_name, _idx_value string) (_r []*T) {
 }
 
 func SelectByIdxNameLimit[T any](idx_name string, idxValues []string, startId, limit int64) (_r []*T) {
-	idx_name = parseIdxName(idx_name)
+	idx_name = parseIdxName[T](idx_name)
 	var a T
 	tname := getObjectName(a)
 	_r = make([]*T, 0)
@@ -382,7 +382,7 @@ func SelectByIdxNameLimit[T any](idx_name string, idxValues []string, startId, l
 		if count <= 0 {
 			return
 		}
-		idxSeqName := idx_seq(tname, fmt.Sprint(idx_name, v))
+		idxSeqName := idx_seq(tname, idx_name, v)
 		ids, err := SingleDB().Get([]byte(idxSeqName))
 		if err == nil && ids != nil {
 			id := BytesToInt64(ids)
@@ -390,7 +390,7 @@ func SelectByIdxNameLimit[T any](idx_name string, idxValues []string, startId, l
 				if count <= 0 {
 					return
 				}
-				_idx_key := idx_key(tname, fmt.Sprint(idx_name, v), j)
+				_idx_key := idx_key(tname, idx_name, v, j)
 				if SingleDB().Has([]byte(_idx_key)) {
 					if i < startId {
 						i++
@@ -410,28 +410,112 @@ func SelectByIdxNameLimit[T any](idx_name string, idxValues []string, startId, l
 	return
 }
 
-func parseIdxName(idx_name string) string {
+func BuildIndex[T any]() (err error) {
+	var a T
+	table_name := getObjectName(a)
+	t := reflect.TypeOf(a)
+	mustBuild := false
+	idx_array := make([]string, 0)
+	for i := 0; i < t.NumField(); i++ {
+		idx_name := strings.ToLower(t.Field(i).Name)
+		if checkIndexField(idx_name, t.Field(i).Tag) {
+			_idx_seq := idx_seq(table_name, idx_name, "")
+			is := GetObjectByLike[int64](_idx_seq)
+			if is == nil || len(is) == 0 {
+				mustBuild = true
+				idx_array = append(idx_array, t.Field(i).Name)
+			}
+		}
+	}
+	if mustBuild {
+		idxSeqName := idx_id_seq(table_name)
+		ids, err := SingleDB().Get([]byte(idxSeqName))
+		var id int64
+		if err == nil && ids != nil {
+			id = BytesToInt64(ids)
+			for i := int64(1); i <= id; i++ {
+				s := SelectOne[T](i)
+				if s != nil {
+					v := reflect.ValueOf(s).Elem()
+					for _, field_name := range idx_array {
+						f := v.FieldByName(field_name)
+						idx_value, e := getValueFromkind(f)
+						if e == nil {
+							_insertWithTableId(table_name, strings.ToLower(field_name), idx_value, i)
+						} else {
+							err = e
+						}
+					}
+				}
+			}
+		}
+	} else {
+		err = errors.New("no need build index")
+	}
+	return
+}
+
+func checkIndexField(field_name string, tag reflect.StructTag) (b bool) {
+	return strings.HasSuffix(field_name, "_") || string(tag) == "idx" || tag.Get("idx") == "1"
+}
+
+func parseIdxName[T any](idx_name string) string {
 	if !strings.HasSuffix(idx_name, "_") {
-		idx_name = fmt.Sprint(idx_name, "_")
+		// idx_name = fmt.Sprint(idx_name, "_")
+		var a T
+		t := reflect.TypeOf(a)
+		isTagIdx := false
+		isOtherIdx := false
+		for i := 0; i < t.NumField(); i++ {
+			field_name := t.Field(i).Name
+			if checkIndexField("", t.Field(i).Tag) && idx_name == field_name {
+				isTagIdx = true
+				break
+			}
+			if strings.ToLower(field_name) == fmt.Sprint(strings.ToLower(idx_name), "_") {
+				isOtherIdx = true
+			}
+		}
+		if !isTagIdx && isOtherIdx {
+			idx_name = fmt.Sprint(idx_name, "_")
+		}
 	}
 	return strings.ToLower(idx_name)
 }
 
-/*key:tablename idx_name seq_value: user_id_1*/
-func idx_key(tablename, idx_name string, id_value int64) string {
-	return fmt.Sprint(idx_key_prefix(tablename, idx_name), id_value)
+/*index key:tablename idx_name seq_value: user_age_22_1*/
+func idx_key(tablename, idx_name string, idx_value any, id_seq_value int64) string {
+	return fmt.Sprint(idx_key_prefix(tablename, idx_name, idx_value), id_seq_value)
 }
 
-/*key: tablename idx_name  : user_id_ or user_id_100_*/
-func idx_key_prefix(tablename, idx_name string) string {
-	return fmt.Sprint(tablename, "_", idx_name, "_")
+/*prefix index  key: tablename idx_name  : user_id_ or user_id_100_*/
+func idx_key_prefix(tablename, idx_name string, idx_value any) string {
+	return fmt.Sprint(tablename, "_", idx_name, "_", idx_value, "_")
 }
 
-/*key idx_tablenaem idx_name: idx_user_id*/
-func idx_seq(tablename, idx_name string) string {
-	return fmt.Sprint("idx_", tablename, "_", idx_name)
+/*table id:
+index key:tablename idx_name seq_value: user_id_1*/
+func idx_id_key(tablename string, id_value int64) string {
+	return fmt.Sprint(idx_id_key_prefix(tablename), id_value)
 }
 
+/*table  id:
+prefix index  key: tablename idx_name  : user_id_ or user_id_100_*/
+func idx_id_key_prefix(tablename string) string {
+	return fmt.Sprint(tablename, "_id_")
+}
+
+/*seq index key idx_tablenaem idx_name: idx_user_id*/
+func idx_seq(tablename, idx_name string, idx_value any) string {
+	return fmt.Sprint("idx_", tablename, "_", idx_name, "_", idx_value)
+}
+
+/*table id*/
+func idx_id_seq(tablename string) string {
+	return fmt.Sprint("idx_", tablename, "_id")
+}
+
+/*id  to  indexs*/
 func pte_key(tablename string, id_value int64) string {
 	return fmt.Sprint("pte_", tablename, "_id_", id_value)
 }
