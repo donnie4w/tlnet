@@ -14,16 +14,16 @@ func GetObjectByOrder[T any](_tablename, _idx_id_name string, startId, count int
 	return Table[T](db_simple.dbname).GetObjectByOrder(_tablename, _idx_id_name, startId, count)
 }
 
-func AddValue[T any](key string, value []byte) error {
-	return Table[T](db_simple.dbname).AddValue(key, value)
+func AddValue(key string, value []byte) error {
+	return Table[any](db_simple.dbname).AddValue(key, value)
 }
 
-func GetValue[T any](key string) (value []byte, err error) {
-	return Table[T](db_simple.dbname).GetValue(key)
+func GetValue(key string) (value []byte, err error) {
+	return Table[any](db_simple.dbname).GetValue(key)
 }
 
-func DelKey[T any](key string) (err error) {
-	return Table[T](db_simple.dbname).DelKey(key)
+func DelKey(key string) (err error) {
+	return Table[any](db_simple.dbname).DelKey(key)
 }
 
 func Insert(a any) (err error) {
