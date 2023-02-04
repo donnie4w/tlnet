@@ -12,6 +12,7 @@ import (
 
 	"github.com/apache/thrift/lib/go/thrift"
 	"github.com/donnie4w/simplelog/logging"
+	. "github.com/donnie4w/tlnet/db"
 )
 
 type TTYPE int
@@ -38,6 +39,8 @@ func NewTlnet() *tlnet {
 	t._staticHandlers = make([]*stub, 0)
 	t._handlers = make([]*stub, 0)
 	t._server = new(http.Server)
+	t._serverMux = http.NewServeMux()
+	t._server.Handler = t._serverMux
 	return t
 }
 
@@ -48,6 +51,7 @@ type tlnet struct {
 	_handlers       []*stub
 	_staticHandlers []*stub
 	_server         *http.Server
+	_serverMux      *http.ServeMux
 }
 
 // TLSConfig optionally provides a TLS configuration for use
@@ -146,37 +150,39 @@ func (this *tlnet) AddStaticHandler(pattern string, dir string, f *Filter, handl
 }
 
 /**http**/
-func (this *tlnet) HttpStart(port int32) {
+func (this *tlnet) HttpStart(port int32) (err error) {
 	this._Handle()
 	this._server.Addr = fmt.Sprint(":", port)
-	e := this._server.ListenAndServe()
-	if e != nil {
-		logging.Error("tlnet start error:", e.Error())
+	err = this._server.ListenAndServe()
+	if err != nil {
+		logging.Error("tlnet start error:", err.Error())
 	}
+	return
 }
 
 /**http tls**/
-func (this *tlnet) HttpStartTLS(port int32, certFile, keyFile string) {
+func (this *tlnet) HttpStartTLS(port int32, certFile, keyFile string) (err error) {
 	this._Handle()
 	this._server.Addr = fmt.Sprint(":", port)
-	e := this._server.ListenAndServeTLS(certFile, keyFile)
-	if e != nil {
-		logging.Error("tlnet startTLS error:", e.Error())
+	err = this._server.ListenAndServeTLS(certFile, keyFile)
+	if err != nil {
+		logging.Error("tlnet startTLS error:", err.Error())
 	}
+	return
 }
 
 func (this *tlnet) _Handle() {
 	if this._dbPath != "" {
-		InitDB(this._dbPath)
+		UseSimpleDB(this._dbPath)
 	}
 	for _, s := range this._processors {
-		http.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: this._maxBytes, _stub: s}))
+		this._serverMux.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: this._maxBytes, _stub: s}))
 	}
 	for _, s := range this._handlers {
-		http.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: this._maxBytes, _stub: s}))
+		this._serverMux.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: this._maxBytes, _stub: s}))
 	}
 	for _, s := range this._staticHandlers {
-		http.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: this._maxBytes, _stub: s, _staticHandler: http.FileServer(http.Dir(s._dir))}))
+		this._serverMux.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: this._maxBytes, _stub: s, _staticHandler: http.FileServer(http.Dir(s._dir))}))
 	}
 }
 
