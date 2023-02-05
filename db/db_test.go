@@ -23,16 +23,16 @@ func init() {
 
 func Test_DB(t *testing.T) {
 	var err error
-	// InitDB("test.db")
 	// err = Insert(&TestObj{Name: "wuxiaodong", Age_: 333})
 	var s string
-	err, s = BuildIndex[TestObj]()
+	// err, s = BuildIndex[TestObj]()
 	fmt.Println("————————————————————————————————————————————", err)
 	fmt.Println("————————————————————————————————————————————", s)
 
-	// err = Update(&TestObj{4, "wuxiaodong", 215})
+	// err = Update(&TestObj{4, "dongdong", 215})
 	// Delete(TestObj{Id: 3})
 	// Delete(&TestObj{Id: 3})
+	//err = DeleteWithKey("0_testobj_id_2")
 	time.Sleep(3 * time.Second)
 	ts := Selects[TestObj](0, 10)
 	for i, v := range ts {
@@ -50,7 +50,7 @@ func Test_DB(t *testing.T) {
 	for i, v := range ts {
 		logging.Debug(i+1, "=========>", v)
 	}
-	o := SelectOneByIdxName[TestObj]("name", "dongdong")
+	o := SelectOneByIdxName[TestObj]("Age", "11")
 	logging.Debug("o==>", o)
 	fmt.Println("")
 	fmt.Println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++")

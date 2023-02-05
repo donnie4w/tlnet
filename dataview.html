@@ -18,18 +18,15 @@
         总数:<span id="totalcount" style="height: 25px;"></span>
     </div>
     <hr>
+    <div id="hint" style="color: crimson;margin: 10px;"></div>
     <table border="1" id="content">
-        <tr>
-            <th>key</th>
-            <th>value</th>
-            <th></th>
-        </tr>
     </table>
     <form id="formId" action="/" method="post">
         <input type="hidden" id="data" value='#####' />
         <input type="hidden" id="pageNumber" name="pageNumber" value="0" />
         <input type="hidden" id="searchId" name="searchId" />
         <input type="hidden" id="showLine" name="showLine" />
+        <input type="hidden" id="transfer" name="transfer" />
     </form>
 </body>
 <script>
@@ -41,35 +38,44 @@
         document.getElementById("_showLine").value = jsonObj.showLine;
         document.getElementById("pageNumber").value = jsonObj.pageNumber;
         document.getElementById("totalcount").innerText = jsonObj.totalcount;
+        document.getElementById("hint").innerText = jsonObj.transfer;
         document.getElementById("currpage").innerText = parseInt(jsonObj.pageNumber) + 1;
+        var content = document.getElementById("content");
+        content.innerHTML = '<tr><th>key</th><th>value</th><th></th><th></th></tr>';
         for (var i = 0; i < list.length; i++) {
             let tr = document.createElement('tr');
             tr.id = "tr" + i;
-            tr.innerHTML = '<td>' + list[i].k + "</td>"
+            var key = list[i].k;
+            tr.innerHTML = '<td>' + key + "</td>"
             let td2 = document.createElement('td');
-            td2.innerHTML = '<textarea>' + list[i].v + '</textarea>';
+            td2.innerHTML = '<textarea></textarea>';
             tr.appendChild(td2);
             let td3 = document.createElement('td');
             td3.innerHTML = '<button onclick="req(this)">获取value值</button>'
             tr.appendChild(td3);
-            document.getElementById("content").appendChild(tr);
+            if (key.startsWith("0_") || (!key.startsWith("1_") && !key.startsWith("pte_") && !key.startsWith("idx_"))) {
+                let td4 = document.createElement('td');
+                td4.innerHTML = '<button onclick="del(this)">删除TableKey</button>'
+                tr.appendChild(td4);
+            }
+            content.appendChild(tr);
         }
     }
     dataview();
     function search(page) {
         var search = document.getElementById("_searchId").value;
-        if (search == "") {
-            alert("搜索key为空");
-        } else {
-            document.getElementById("searchId").value = search;
-            document.getElementById("showLine").value = document.getElementById("_showLine").value;
-            var pageNumber = parseInt(document.getElementById("pageNumber").value) + page;
-            if (pageNumber >= 0) {
-                document.getElementById("pageNumber").value = pageNumber
-                var form_ = document.getElementById("formId");
-                form_.submit();
-            }
+        // if (search == "") {
+        //     alert("搜索key为空");
+        // } else {
+        document.getElementById("searchId").value = search;
+        document.getElementById("showLine").value = document.getElementById("_showLine").value;
+        var pageNumber = parseInt(document.getElementById("pageNumber").value) + page;
+        if (pageNumber >= 0) {
+            document.getElementById("pageNumber").value = pageNumber
+            var form_ = document.getElementById("formId");
+            form_.submit();
         }
+        // }
     }
     function req(obj) {
         var xmlHttp = new XMLHttpRequest();
@@ -83,6 +89,20 @@
         xmlHttp.open("POST", "/req", true);
         xmlHttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
         xmlHttp.send("key=" + obj.parentNode.parentNode.cells[0].innerText);
+    }
+
+    function del(obj) {
+        var xmlHttp = new XMLHttpRequest();
+        var key = obj.parentNode.parentNode.cells[0].innerText;
+        xmlHttp.onreadystatechange = function () {
+            if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                document.getElementById("transfer").value = "成功删除key: "+key;
+                search(0);
+            }
+        }
+        xmlHttp.open("POST", "/del", true);
+        xmlHttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        xmlHttp.send("key=" + key);
     }
 </script>
 

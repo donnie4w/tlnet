@@ -7,23 +7,40 @@ import (
 	"net/http"
 	. "net/http"
 	"testing"
+	"time"
+
+	// "time"
 
 	"github.com/donnie4w/simplelog/logging"
+	. "github.com/donnie4w/tlnet/db"
 )
 
 type TestObj struct {
-	Id    int64
-	Name_ string
-	Age_  int32
+	Id   int64
+	Name string `idx`
+	Age_ int
 }
 
-func Test_DB(t *testing.T) {
-	InitDB("test.db")
-	err := Insert(&TestObj{Name_: "wuxiaodong", Age_: 215})
+func init() {
+	UseSimpleDB("tl.db")
+}
+
+func _Test_DB(t *testing.T) {
+	var err error
+	for i := 0; i < 10; i++ {
+		err = Insert(&TestObj{Name: "wuxiaodong", Age_: 10 + i})
+		SimpleDB().Put([]byte(fmt.Sprint("www", i)), []byte(fmt.Sprint("xxxx", i)))
+	}
+
+	var s string
+	// err, s = BuildIndex[TestObj]()
 	fmt.Println("————————————————————————————————————————————", err)
-	// err = Update(&TestObj{3, "aaaaaa", 111})
+	fmt.Println("————————————————————————————————————————————", s)
+
+	// err = Update(&TestObj{3, "wuxiaodong", 222})
 	// Delete(TestObj{Id: 3})
-	// Delete(&TestObj{Id: 2})
+	// Delete(&TestObj{Id: 3})
+	time.Sleep(3 * time.Second)
 	ts := Selects[TestObj](0, 10)
 	for i, v := range ts {
 		logging.Debug(i+1, "----", v)
@@ -36,7 +53,7 @@ func Test_DB(t *testing.T) {
 		logging.Debug(i+1, "=====", v)
 	}
 	fmt.Println("------------------------------------------------")
-	ts = SelectByIdxNameLimit[TestObj]("age", []string{"215", "216", "333"}, 0, 2)
+	ts = SelectByIdxNameLimit[TestObj]("age_", []string{"215", "216", "333"}, 2, 2)
 	for i, v := range ts {
 		logging.Debug(i+1, "=========>", v)
 	}
@@ -44,38 +61,59 @@ func Test_DB(t *testing.T) {
 	logging.Debug("o==>", o)
 	fmt.Println("")
 	fmt.Println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-	IterDB()
+	// IterDB()
 }
 
-func IterDB() {
-	keys, _ := SingleDB().GetKeys()
-	for i, v := range keys {
-		logging.Debug("key", i, "==", v)
-		value, _ := SingleDB().GetString([]byte(v))
-		logging.Debug(v, "==>", value)
-	}
-}
+// func Benchmark_Alloc(b *testing.B) {
+// 	var i int
+// 	for i = 0; i < b.N; i++ {
+// 		fmt.Sprintf("%d", i)
+// 		// Insert(&TestObj{Name_: "wuxiaodong", Age_: i})
+// 		ts := Selects[TestObj](0, 10)
+// 		for i, v := range ts {
+// 			logging.Debug(i+1, "----", v)
+// 		}
+// 		ts = SelectByIdxName[TestObj]("Age_", "3370")
+// 		for i, v := range ts {
+// 			logging.Debug(i+1, "=====", v)
+// 		}
+// 		ts = SelectByIdxNameLimit[TestObj]("age", []string{"215", "216", "333"}, 0, 2)
+// 		for i, v := range ts {
+// 			logging.Debug(i+1, "=========>", v)
+// 		}
+// 	}
+// 	logging.Debug("i===>", i)
+// }
 
-func _Test_snap(t *testing.T) {
-	InitDB("test.db")
-	SingleDB().Put([]byte("d"), []byte("3"))
-	logging.Debug(SingleDB().GetKeys())
-	er := SingleDB().BackupToDisk("snap.lb", []byte("d"))
-	logging.Debug(er)
-	logging.Debug(RecoverBackup("snap.lb"))
-	for _, v := range RecoverBackup("snap.lb") {
-		logging.Debug(string(v.Key), " == ", string(v.Value))
-	}
-}
+// func IterDB() {
+// 	keys, _ := SimpleDB().GetKeys()
+// 	for i, v := range keys {
+// 		logging.Debug("key", i+1, "==", v)
+// 		value, _ := SimpleDB().GetString([]byte(v))
+// 		logging.Debug(v, "==>", value)
+// 	}
+// }
 
-func _Test_tlnet(t *testing.T) {
+// func _Test_snap(t *testing.T) {
+// 	SimpleDB().Put([]byte("d"), []byte("3"))
+// 	logging.Debug(SimpleDB().GetKeys())
+// 	er := SimpleDB().BackupToDisk("snap.lb", []byte("d"))
+// 	logging.Debug(er)
+// 	logging.Debug(RecoverBackup("snap.lb"))
+// 	for _, v := range RecoverBackup("snap.lb") {
+// 		logging.Debug(string(v.Key), " == ", string(v.Value))
+// 	}
+// }
+
+func Test_tlnet(t *testing.T) {
 	tlnet := NewTlnet()
-	// tlnet.DBPath("test.db")
+	tlnet.DBPath("tl.db")
 	tlnet.SetMaxBytesReader((1 << 20) * 50)
 	tlnet.AddHandlerFunc("/aaa", nil, aaa)
 	tlnet.AddHandlerFunc("/bbb", notFoundFilter(), aaa)
 	tlnet.AddProcessor("/ppp", nil)
-	tlnet.AddStaticHandler("/", "test.db", staticFilter(), nil)
+	tlnet.AddStaticHandler("/", "tl.db", staticFilter(), nil)
+	OpenView(6789)
 	tlnet.HttpStart(8080)
 }
 

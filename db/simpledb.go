@@ -35,8 +35,11 @@ func Update(a any) (err error) {
 func Delete(a any) (err error) {
 	return Table[any](db_simple.dbname).Delete(a)
 }
-func DeleteWithId(id int64) (err error) {
-	return Table[any](db_simple.dbname).DeleteWithId(id)
+func DeleteWithId[T any](id int64) (err error) {
+	return Table[T](db_simple.dbname).DeleteWithId(id)
+}
+func DeleteWithKey(table_key string) (err error) {
+	return Table[any](db_simple.dbname).DeleteWithKey(table_key)
 }
 
 /*

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -284,6 +285,11 @@ func (this _Table[T]) DeleteWithId(id int64) (err error) {
 	return this._delete(table_name, id)
 }
 
+func (this _Table[T]) DeleteWithKey(table_key string) (err error) {
+	table_name, id := parse_idx_id_key(table_key)
+	return this._delete(table_name, id)
+}
+
 func (this _Table[T]) _delete(table_name string, _table_id_value int64) (err error) {
 	if _table_id_value == 0 {
 		return errors.New("The ID value for deletion is not set")
@@ -537,7 +543,7 @@ func idx_key(tablename, idx_name string, idx_value any, id_seq_value int64) stri
 
 /*prefix index  key: tablename idx_name  : user_id_ or user_id_100_*/
 func idx_key_prefix(tablename, idx_name string, idx_value any) string {
-	return fmt.Sprint(tablename, "_", idx_name, "_", idx_value, "_")
+	return fmt.Sprint("1_", tablename, "_", idx_name, "_", idx_value, "_")
 }
 
 /*table id:
@@ -549,7 +555,15 @@ func idx_id_key(tablename string, id_value int64) string {
 /*table  id:
 prefix index  key: tablename idx_name  : user_id_ or user_id_100_*/
 func idx_id_key_prefix(tablename string) string {
-	return fmt.Sprint(tablename, "_id_")
+	return fmt.Sprint("0_", tablename, "_id_")
+}
+
+func parse_idx_id_key(table_key string) (table_name string, id int64) {
+	id_site := strings.LastIndex(table_key, "_id_")
+	table_name = table_key[2:id_site]
+	_id := table_key[id_site+4:]
+	id, _ = strconv.ParseInt(_id, 10, 0)
+	return
 }
 
 /*seq index key idx_tablenaem idx_name: idx_user_id*/

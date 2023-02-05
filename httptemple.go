@@ -19,6 +19,7 @@ func data_view(port int32) {
 	tl := NewTlnet()
 	tl.Handle("/", search)
 	tl.Handle("/req", req)
+	tl.Handle("/del", del)
 	logging.Debug("open data view server :", port)
 	err := tl.HttpStart(port)
 	logging.Error("err:", err.Error())
@@ -27,12 +28,13 @@ func data_view(port int32) {
 func search(hc *HttpContext) {
 	var keys []string
 	keys, _ = SimpleDB().GetKeys()
-	searchId := hc.PostParam("searchId")
+	searchId := strings.TrimSpace(hc.PostParam("searchId"))
 	_showLine := hc.PostParam("showLine")
+	transfer := hc.PostParam("transfer")
 	_pageNumber := hc.PostParam("pageNumber")
-	logging.Debug("searchId:", searchId)
-	logging.Debug("showLine:", _showLine)
-	logging.Debug("pageNumber:", _pageNumber)
+	// logging.Debug("searchId:", searchId)
+	// logging.Debug("showLine:", _showLine)
+	// logging.Debug("pageNumber:", _pageNumber)
 	if _showLine == "" {
 		_showLine = "100"
 	}
@@ -44,19 +46,20 @@ func search(hc *HttpContext) {
 	} else {
 		keys, _ = SimpleDB().GetKeysPrefix([]byte(searchId))
 	}
-	showLine, _ := strconv.ParseInt(_showLine, 10, 0)
-	pageNumber, _ := strconv.ParseInt(_pageNumber, 10, 0)
+	showLine, _ := strconv.Atoi(_showLine)
+	pageNumber, _ := strconv.Atoi(_pageNumber)
 	s := "{"
 	s = fmt.Sprint(s, `"searchId":`, `"`, searchId, `",`)
+	s = fmt.Sprint(s, `"transfer":`, `"`, transfer, `",`)
 	s = fmt.Sprint(s, `"showLine":`, `"`, showLine, `",`)
 	s = fmt.Sprint(s, `"pageNumber":`, `"`, pageNumber, `",`)
 	s = fmt.Sprint(s, `"totalcount":`, `"`, len(keys), `",`)
 	s = fmt.Sprint(s, `"list":[`)
 	max := len(keys)
-	if max > int(showLine*(pageNumber+1)) {
-		max = int(showLine * (pageNumber + 1))
+	if max > showLine*(pageNumber+1) {
+		max = showLine * (pageNumber + 1)
 	}
-	for i := int(showLine * pageNumber); i < max; i++ {
+	for i := showLine * pageNumber; i < max; i++ {
 		// value, _ := SimpleDB().GetString([]byte(keys[i]))
 		// logging.Debug("key", i+1, ":", keys[i], "===>", value)
 		s = fmt.Sprint(s, `{"k":"`, keys[i], `","v":"`, "", `"}`)
@@ -65,7 +68,6 @@ func search(hc *HttpContext) {
 		}
 	}
 	s = fmt.Sprint(s, "]}")
-	// logging.Debug(s)
 	// htmlstring := loadfile("dataview.html")
 	hc.ResponseString(0, strings.ReplaceAll(htmlstring, "#####", s))
 }
@@ -73,8 +75,16 @@ func search(hc *HttpContext) {
 func req(hc *HttpContext) {
 	key := hc.PostParam("key")
 	value, _ := SimpleDB().GetString([]byte(key))
-	// logging.Debug("req:", key, " = ", value)
 	hc.ResponseString(0, value)
+}
+
+func del(hc *HttpContext) {
+	key := hc.PostParam("key")
+	if strings.HasPrefix(key, "0_") || strings.HasPrefix(key, "1_") || strings.HasPrefix(key, "pte_") || strings.HasPrefix(key, "idx_") {
+		DeleteWithKey(key)
+	} else {
+		SimpleDB().Del([]byte(key))
+	}
 }
 
 func loadfile(s string) (_r string) {
@@ -106,18 +116,15 @@ var htmlstring = `
         总数:<span id="totalcount" style="height: 25px;"></span>
     </div>
     <hr>
+    <div id="hint" style="color: crimson;margin: 10px;"></div>
     <table border="1" id="content">
-        <tr>
-            <th>key</th>
-            <th>value</th>
-            <th></th>
-        </tr>
     </table>
     <form id="formId" action="/" method="post">
         <input type="hidden" id="data" value='#####' />
         <input type="hidden" id="pageNumber" name="pageNumber" value="0" />
         <input type="hidden" id="searchId" name="searchId" />
         <input type="hidden" id="showLine" name="showLine" />
+        <input type="hidden" id="transfer" name="transfer" />
     </form>
 </body>
 <script>
@@ -129,35 +136,44 @@ var htmlstring = `
         document.getElementById("_showLine").value = jsonObj.showLine;
         document.getElementById("pageNumber").value = jsonObj.pageNumber;
         document.getElementById("totalcount").innerText = jsonObj.totalcount;
+        document.getElementById("hint").innerText = jsonObj.transfer;
         document.getElementById("currpage").innerText = parseInt(jsonObj.pageNumber) + 1;
+        var content = document.getElementById("content");
+        content.innerHTML = '<tr><th>key</th><th>value</th><th></th><th></th></tr>';
         for (var i = 0; i < list.length; i++) {
             let tr = document.createElement('tr');
             tr.id = "tr" + i;
-            tr.innerHTML = '<td>' + list[i].k + "</td>"
+            var key = list[i].k;
+            tr.innerHTML = '<td>' + key + "</td>"
             let td2 = document.createElement('td');
-            td2.innerHTML = '<textarea>' + list[i].v + '</textarea>';
+            td2.innerHTML = '<textarea></textarea>';
             tr.appendChild(td2);
             let td3 = document.createElement('td');
             td3.innerHTML = '<button onclick="req(this)">获取value值</button>'
             tr.appendChild(td3);
-            document.getElementById("content").appendChild(tr);
+            if (key.startsWith("0_") || (!key.startsWith("1_") && !key.startsWith("pte_") && !key.startsWith("idx_"))) {
+                let td4 = document.createElement('td');
+                td4.innerHTML = '<button onclick="del(this)">删除TableKey</button>'
+                tr.appendChild(td4);
+            }
+            content.appendChild(tr);
         }
     }
     dataview();
     function search(page) {
         var search = document.getElementById("_searchId").value;
-        if (search == "") {
-            alert("搜索key为空");
-        } else {
-            document.getElementById("searchId").value = search;
-            document.getElementById("showLine").value = document.getElementById("_showLine").value;
-            var pageNumber = parseInt(document.getElementById("pageNumber").value) + page;
-            if (pageNumber >= 0) {
-                document.getElementById("pageNumber").value = pageNumber
-                var form_ = document.getElementById("formId");
-                form_.submit();
-            }
+        // if (search == "") {
+        //     alert("搜索key为空");
+        // } else {
+        document.getElementById("searchId").value = search;
+        document.getElementById("showLine").value = document.getElementById("_showLine").value;
+        var pageNumber = parseInt(document.getElementById("pageNumber").value) + page;
+        if (pageNumber >= 0) {
+            document.getElementById("pageNumber").value = pageNumber
+            var form_ = document.getElementById("formId");
+            form_.submit();
         }
+        // }
     }
     function req(obj) {
         var xmlHttp = new XMLHttpRequest();
@@ -171,6 +187,20 @@ var htmlstring = `
         xmlHttp.open("POST", "/req", true);
         xmlHttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
         xmlHttp.send("key=" + obj.parentNode.parentNode.cells[0].innerText);
+    }
+
+    function del(obj) {
+        var xmlHttp = new XMLHttpRequest();
+        var key = obj.parentNode.parentNode.cells[0].innerText;
+        xmlHttp.onreadystatechange = function () {
+            if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                document.getElementById("transfer").value = "成功删除key: "+key;
+                search(0);
+            }
+        }
+        xmlHttp.open("POST", "/del", true);
+        xmlHttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        xmlHttp.send("key=" + key);
     }
 </script>
 
