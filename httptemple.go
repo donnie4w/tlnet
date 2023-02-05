@@ -73,7 +73,7 @@ func search(hc *HttpContext) {
 func req(hc *HttpContext) {
 	key := hc.PostParam("key")
 	value, _ := SimpleDB().GetString([]byte(key))
-	logging.Debug("req:", key, " = ", value)
+	// logging.Debug("req:", key, " = ", value)
 	hc.ResponseString(0, value)
 }
 
