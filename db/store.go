@@ -146,14 +146,20 @@ func getObjectName(a any) (tname string) {
 // 	fmt.Println(a)
 // }
 
-func getTableIdValue(a any) int64 {
+func getTableIdValue(a any) (_r int64) {
 	v := reflect.ValueOf(a)
 	if reflect.TypeOf(a).Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
-	return v.FieldByNameFunc(func(s string) bool {
+	id_v := v.FieldByNameFunc(func(s string) bool {
 		return strings.ToLower(s) == "id"
-	}).Int()
+	})
+	if id_v.Kind() == reflect.Pointer {
+		_r = *(*int64)(id_v.UnsafePointer())
+	} else {
+		_r = id_v.Int()
+	}
+	return
 }
 
 func (this _Table[T]) Insert(a any) (err error) {
@@ -162,9 +168,14 @@ func (this _Table[T]) Insert(a any) (err error) {
 		_table_id_value := this.GetAndSetId(idx_id_seq(table_name))
 		_idx_key := idx_id_key(table_name, _table_id_value)
 		v := reflect.ValueOf(a).Elem()
-		v.FieldByNameFunc(func(s string) bool {
+		id_v := v.FieldByNameFunc(func(s string) bool {
 			return strings.ToLower(s) == "id"
-		}).SetInt(_table_id_value)
+		})
+		if id_v.Kind() == reflect.Pointer {
+			id_v.Set(reflect.ValueOf(&_table_id_value))
+		} else {
+			id_v.SetInt(_table_id_value)
+		}
 		this.AddObject(_idx_key, a)
 		go this._saveIdx_(a, table_name, _table_id_value)
 	} else {
