@@ -206,6 +206,17 @@ func (this *DB) LoadDataFile(filename string) (err error) {
 	return
 }
 
+func (this *DB) LoadBytes(buf []byte) (err error) {
+	var bs []*BakStub
+	err = decoder(buf, &bs)
+	if err == nil {
+		for _, v := range bs {
+			err = this.Put(v.Key, v.Value)
+		}
+	}
+	return
+}
+
 func _TraverseSnap(snap *leveldb.Snapshot, prefix []byte) (bs []*BakStub) {
 	ran := new(util.Range)
 	if prefix != nil {
