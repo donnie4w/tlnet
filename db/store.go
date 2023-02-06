@@ -191,59 +191,62 @@ func (this _Table[T]) _saveIdx_(a any, tablename string, _table_id_value int64) 
 		idxName := t.Field(i).Name
 		if checkIndexField(idxName, t.Field(i).Tag) {
 			f := v.FieldByName(idxName)
-			idx_value, e := getValueFromkind(f)
-			if e == nil {
-				this._insertWithTableId(tablename, strings.ToLower(idxName), idx_value, _table_id_value)
+			idx_value, _ := getValueFromkind(f)
+			if idx_value != nil {
+				this._insertWithTableId(tablename, strings.ToLower(idxName), *idx_value, _table_id_value)
 			}
 		}
 	}
 }
 
-func getValueFromkind(f reflect.Value) (v string, e error) {
-	if f.CanFloat() {
-		return fmt.Sprint(f.Float()), nil
-	}
+func getValueFromkind(f reflect.Value) (_v *string, e error) {
+	defer func() {
+		if err := recover(); err != nil {
+		}
+	}()
+	var v string
+	isSet := false
 	if f.CanInt() {
-		return fmt.Sprint(f.Int()), nil
-	}
-	if f.CanUint() {
-		return fmt.Sprint(f.Uint()), nil
-	}
-	if f.Kind() == reflect.String {
-		return f.String(), nil
-	}
-	if f.Kind() == reflect.Pointer {
+		v, isSet = fmt.Sprint(f.Int()), true
+	} else if f.CanFloat() {
+		v, isSet = fmt.Sprint(f.Float()), true
+	} else if f.CanUint() {
+		v, isSet = fmt.Sprint(f.Uint()), true
+	} else if f.Kind() == reflect.String {
+		v, isSet = f.String(), true
+	} else if f.Kind() == reflect.Pointer {
 		switch f.Interface().(type) {
 		case *int:
-			v = fmt.Sprint(*(*int)(f.UnsafePointer()))
+			v, isSet = fmt.Sprint(*(*int)(f.UnsafePointer())), true
 		case *int8:
-			v = fmt.Sprint(*(*int8)(f.UnsafePointer()))
+			v, isSet = fmt.Sprint(*(*int8)(f.UnsafePointer())), true
 		case *int16:
-			v = fmt.Sprint(*(*int16)(f.UnsafePointer()))
+			v, isSet = fmt.Sprint(*(*int16)(f.UnsafePointer())), true
 		case *int32:
-			v = fmt.Sprint(*(*int32)(f.UnsafePointer()))
+			v, isSet = fmt.Sprint(*(*int32)(f.UnsafePointer())), true
 		case *int64:
-			v = fmt.Sprint(*(*int64)(f.UnsafePointer()))
+			v, isSet = fmt.Sprint(*(*int64)(f.UnsafePointer())), true
 		case *uint:
-			v = fmt.Sprint(*(*uint)(f.UnsafePointer()))
+			v, isSet = fmt.Sprint(*(*uint)(f.UnsafePointer())), true
 		case *uint16:
-			v = fmt.Sprint(*(*uint16)(f.UnsafePointer()))
+			v, isSet = fmt.Sprint(*(*uint16)(f.UnsafePointer())), true
 		case *uint32:
-			v = fmt.Sprint(*(*uint32)(f.UnsafePointer()))
+			v, isSet = fmt.Sprint(*(*uint32)(f.UnsafePointer())), true
 		case *uint64:
-			v = fmt.Sprint(*(*uint64)(f.UnsafePointer()))
+			v, isSet = fmt.Sprint(*(*uint64)(f.UnsafePointer())), true
 		case *float32:
-			v = fmt.Sprint(*(*float32)(f.UnsafePointer()))
+			v, isSet = fmt.Sprint(*(*float32)(f.UnsafePointer())), true
 		case *float64:
-			v = fmt.Sprint(*(*float64)(f.UnsafePointer()))
+			v, isSet = fmt.Sprint(*(*float64)(f.UnsafePointer())), true
 		case *string:
-			v = *(*string)(f.UnsafePointer())
-		default:
-			e = errors.New("value type must be number ptr or string ptr")
+			v, isSet = *(*string)(f.UnsafePointer()), true
 		}
-		return
 	}
-	e = errors.New("value type must be number or string")
+	if isSet {
+		_v = &v
+	} else {
+		e = errors.New(fmt.Sprint(f.String(), " build index  error"))
+	}
 	return
 }
 
@@ -528,8 +531,8 @@ func (this _Table[T]) BuildIndex() (err error, _r string) {
 					for _, field_name := range idx_array {
 						f := v.FieldByName(field_name)
 						idx_value, e := getValueFromkind(f)
-						if e == nil {
-							this._insertWithTableId(table_name, strings.ToLower(field_name), idx_value, i)
+						if idx_value != nil {
+							this._insertWithTableId(table_name, strings.ToLower(field_name), *idx_value, i)
 						} else {
 							err = e
 						}
