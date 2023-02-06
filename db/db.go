@@ -169,7 +169,7 @@ func (this *DB) BackupToDisk(filename string, prefix []byte) error {
 		return err
 	}
 	defer snap.Release()
-	bs := TraverseSnap(snap, prefix)
+	bs := _TraverseSnap(snap, prefix)
 	b, e := encoder(bs)
 	if e != nil {
 		return e
@@ -198,7 +198,15 @@ func RecoverBackup(filename string) (bs []*BakStub) {
 	return
 }
 
-func TraverseSnap(snap *leveldb.Snapshot, prefix []byte) (bs []*BakStub) {
+func (this *DB) LoadDataFile(filename string) (err error) {
+	bs := RecoverBackup(filename)
+	for _, v := range bs {
+		err = this.Put(v.Key, v.Value)
+	}
+	return
+}
+
+func _TraverseSnap(snap *leveldb.Snapshot, prefix []byte) (bs []*BakStub) {
 	ran := new(util.Range)
 	if prefix != nil {
 		ran = util.BytesPrefix(prefix)

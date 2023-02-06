@@ -12,9 +12,9 @@ import (
 )
 
 type TestObj struct {
-	Id   int64
-	Name string `idx`
-	Age_ int
+	Id   *int64
+	Name *string `idx`
+	Age_ *int
 }
 
 func init() {
@@ -23,15 +23,17 @@ func init() {
 
 func Test_DB(t *testing.T) {
 	var err error
-	// err = Insert(&TestObj{Name: "wuxiaodong", Age_: 333})
+	// name := "dongdong"
+	age := 333
+	err = Insert(&TestObj{Name: nil, Age_: &age})
 	var s string
 	// err, s = BuildIndex[TestObj]()
 	fmt.Println("————————————————————————————————————————————", err)
 	fmt.Println("————————————————————————————————————————————", s)
-
-	// err = Update(&TestObj{4, "dongdong", 215})
+	// id := int64(3)
+	// err = Update(&TestObj{&id, &name, &age})
 	// Delete(TestObj{Id: 3})
-	// Delete(&TestObj{Id: 3})
+	// Delete(&TestObj{Id: &id})
 	//err = DeleteWithKey("0_testobj_id_2")
 	time.Sleep(3 * time.Second)
 	ts := Selects[TestObj](0, 10)
@@ -46,7 +48,7 @@ func Test_DB(t *testing.T) {
 		logging.Debug(i+1, "=====", v)
 	}
 	fmt.Println("------------------------------------------------")
-	ts = SelectByIdxNameLimit[TestObj]("age_", []string{"111", "216"}, 0, 2)
+	ts = SelectByIdxNameLimit[TestObj]("age_", []string{"111", "333"}, 0, 2)
 	for i, v := range ts {
 		logging.Debug(i+1, "=========>", v)
 	}
@@ -54,6 +56,15 @@ func Test_DB(t *testing.T) {
 	logging.Debug("o==>", o)
 	fmt.Println("")
 	fmt.Println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+	IterDB()
+}
+
+func Test_Backup(t *testing.T) {
+	SimpleDB().BackupToDisk("bak", nil)
+}
+
+func Test_Load(t *testing.T) {
+	SimpleDB().LoadDataFile("bak")
 	IterDB()
 }
 
