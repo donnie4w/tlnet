@@ -215,9 +215,6 @@ var htmlstring = `
     dataview();
     function search(page) {
         var search = document.getElementById("_searchId").value;
-        // if (search == "") {
-        //     alert("搜索key为空");
-        // } else {
         document.getElementById("searchId").value = search;
         document.getElementById("showLine").value = document.getElementById("_showLine").value;
         var pageNumber = parseInt(document.getElementById("pageNumber").value) + page;
@@ -226,7 +223,6 @@ var htmlstring = `
             var form_ = document.getElementById("formId");
             form_.submit();
         }
-        // }
     }
     function req(obj) {
         var xmlHttp = new XMLHttpRequest();
@@ -259,15 +255,6 @@ var htmlstring = `
     function backup() {
         var msg = "确定要导出所有数据吗？\n\n请确认！";
         if (confirm(msg) == true) {
-            // var xmlHttp = new XMLHttpRequest();
-            // xmlHttp.onreadystatechange = function () {
-            //     if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
-            //         alert("成功");
-            //     }
-            // }
-            // xmlHttp.open("POST", "/backup", true);
-            // xmlHttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-            // xmlHttp.send();
             document.getElementById('backupForm').submit();
             return true;
         } else {
