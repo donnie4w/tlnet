@@ -73,7 +73,7 @@ func search(hc *HttpContext) {
 		}
 	}
 	s = fmt.Sprint(s, "]}")
-	htmlstring := loadfile("dataview.html")
+	// htmlstring := loadfile("dataview.html")
 	hc.ResponseString(0, strings.ReplaceAll(htmlstring, "#####", s))
 }
 
