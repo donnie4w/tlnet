@@ -212,6 +212,37 @@ func getValueFromkind(f reflect.Value) (v string, e error) {
 	if f.Kind() == reflect.String {
 		return f.String(), nil
 	}
+	if f.Kind() == reflect.Pointer {
+		switch f.Interface().(type) {
+		case *int:
+			v = fmt.Sprint(*(*int)(f.UnsafePointer()))
+		case *int8:
+			v = fmt.Sprint(*(*int8)(f.UnsafePointer()))
+		case *int16:
+			v = fmt.Sprint(*(*int16)(f.UnsafePointer()))
+		case *int32:
+			v = fmt.Sprint(*(*int32)(f.UnsafePointer()))
+		case *int64:
+			v = fmt.Sprint(*(*int64)(f.UnsafePointer()))
+		case *uint:
+			v = fmt.Sprint(*(*uint)(f.UnsafePointer()))
+		case *uint16:
+			v = fmt.Sprint(*(*uint16)(f.UnsafePointer()))
+		case *uint32:
+			v = fmt.Sprint(*(*uint32)(f.UnsafePointer()))
+		case *uint64:
+			v = fmt.Sprint(*(*uint64)(f.UnsafePointer()))
+		case *float32:
+			v = fmt.Sprint(*(*float32)(f.UnsafePointer()))
+		case *float64:
+			v = fmt.Sprint(*(*float64)(f.UnsafePointer()))
+		case *string:
+			v = *(*string)(f.UnsafePointer())
+		default:
+			e = errors.New("value type must be number ptr or string ptr")
+		}
+		return
+	}
 	e = errors.New("value type must be number or string")
 	return
 }
