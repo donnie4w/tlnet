@@ -1,10 +1,13 @@
 package tlnet
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/donnie4w/simplelog/logging"
 	. "github.com/donnie4w/tlnet/db"
@@ -20,6 +23,8 @@ func data_view(port int32) {
 	tl.Handle("/", search)
 	tl.Handle("/req", req)
 	tl.Handle("/del", del)
+	tl.Handle("/backup", backup)
+	tl.Handle("/load", load)
 	logging.Debug("open data view server :", port)
 	err := tl.HttpStart(port)
 	logging.Error("err:", err.Error())
@@ -68,7 +73,7 @@ func search(hc *HttpContext) {
 		}
 	}
 	s = fmt.Sprint(s, "]}")
-	// htmlstring := loadfile("dataview.html")
+	htmlstring := loadfile("dataview.html")
 	hc.ResponseString(0, strings.ReplaceAll(htmlstring, "#####", s))
 }
 
@@ -87,12 +92,50 @@ func del(hc *HttpContext) {
 	}
 }
 
+func backup(hc *HttpContext) {
+	filename := fmt.Sprint("backup_", time.Now().Format("2006-01-02"), ".db")
+	SimpleDB().BackupToDisk(filename, nil)
+	file, err := os.Open(filename)
+	if err == nil {
+		defer func() {
+			file.Close()
+			os.Remove(filename)
+		}()
+		fileStat, _ := file.Stat()
+		hc.Writer().Header().Set("Content-Disposition", "attachment; filename="+filename)
+		hc.Writer().Header().Set("Content-Type", "application/octet-stream")
+		hc.Writer().Header().Set("Content-Length", fmt.Sprint(fileStat.Size()))
+		io.Copy(hc.Writer(), file)
+	} else {
+		hc.ResponseString(0, ackhtmlString("数据导出失败！"))
+	}
+}
+
+func load(hc *HttpContext) {
+	f, _, e := hc.FormFile("loadfile")
+	if e == nil {
+		var buf bytes.Buffer
+		io.Copy(&buf, f)
+		e = SimpleDB().LoadBytes(buf.Bytes())
+	}
+	if e == nil {
+		hc.ResponseString(0, ackhtmlString("文件导入成功！"))
+	} else {
+		hc.ResponseString(0, ackhtmlString("文件导入失败！"))
+	}
+
+}
+
 func loadfile(s string) (_r string) {
 	bs, err := os.ReadFile(s)
 	if err == nil {
 		_r = string(bs)
 	}
 	return
+}
+
+func ackhtmlString(s string) string {
+	return fmt.Sprint(`<html><body><p style="color: crimson;margin: 10px;">`, s, `</p> <a href="/">返回主页</a><body></html>`)
 }
 
 var htmlstring = `
@@ -104,7 +147,7 @@ var htmlstring = `
 
 <body style="background-color: beige;">
     <div style="margin-top: 20px;margin-left: 10px;">
-        <input type="text" id="_searchId" style="width: 250px;height: 25px;" />&nbsp;
+        <input type="text" id="_searchId" style="width: 250px;height: 25px;" placeholder="key前缀" />&nbsp;
         <button onclick="search(0)">搜索key前缀</button>
         <br style="margin: 100px;">
     </div>
@@ -115,6 +158,16 @@ var htmlstring = `
         &nbsp;每页显示:<input type="text" id="_showLine" value="100" style="width: 100px;height: 25px;" />
         总数:<span id="totalcount" style="height: 25px;"></span>
     </div>
+    <div style="margin: 10px; display:inline">
+        <button onclick="backup()">导出数据到文件</button>
+        <form id="backupForm" action="/backup" method="post" enctype="multipart/form-data">
+        </form>
+        <button onclick="load()" style="display:inline">文件数据导入</button>
+        <form id="loadForm" action="/load" method="post" enctype="multipart/form-data" style="display:inline">
+            <input type="file" id="loadfile" name="loadfile" style="width: 250px;height: 25px;">
+        </form>
+    </div>
+
     <hr>
     <div id="hint" style="color: crimson;margin: 10px;"></div>
     <table border="1" id="content">
@@ -194,13 +247,49 @@ var htmlstring = `
         var key = obj.parentNode.parentNode.cells[0].innerText;
         xmlHttp.onreadystatechange = function () {
             if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
-                document.getElementById("transfer").value = "成功删除key: "+key;
+                document.getElementById("transfer").value = "成功删除key: " + key;
                 search(0);
             }
         }
         xmlHttp.open("POST", "/del", true);
         xmlHttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
         xmlHttp.send("key=" + key);
+    }
+
+    function backup() {
+        var msg = "确定要导出所有数据吗？\n\n请确认！";
+        if (confirm(msg) == true) {
+            // var xmlHttp = new XMLHttpRequest();
+            // xmlHttp.onreadystatechange = function () {
+            //     if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+            //         alert("成功");
+            //     }
+            // }
+            // xmlHttp.open("POST", "/backup", true);
+            // xmlHttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            // xmlHttp.send();
+            document.getElementById('backupForm').submit();
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    function load() {
+        var file = document.getElementById('loadfile').files[0];
+        if (!isEmpty(file)) {
+            document.getElementById('loadForm').submit();
+        } else {
+            alert("未选择数据文件");
+        }
+    }
+
+    function isEmpty(obj) {
+        if (typeof obj == "undefined" || obj == null || obj == "") {
+            return true;
+        } else {
+            return false;
+        }
     }
 </script>
 
