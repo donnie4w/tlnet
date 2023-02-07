@@ -14,6 +14,10 @@ func (this *tlnet) Handle(pattern string, handlerFunc func(hc *HttpContext)) {
 	})
 }
 
+func (this *tlnet) WebSocketHandle(pattern string, handlerFunc func(hc *HttpContext)) {
+	this._wss = append(this._wss, &wsStub{pattern, &wsHandler{httpContextFunc: handlerFunc}})
+}
+
 func (this *tlnet) HandleWithFilter(pattern string, _filter *Filter, handlerFunc func(hc *HttpContext)) {
 	this.AddHandlerFunc(pattern, _filter, func(w http.ResponseWriter, r *http.Request) {
 		handlerFunc(newHttpContext(w, r))

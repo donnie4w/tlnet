@@ -13,6 +13,7 @@ import (
 	"github.com/apache/thrift/lib/go/thrift"
 	"github.com/donnie4w/simplelog/logging"
 	. "github.com/donnie4w/tlnet/db"
+	"golang.org/x/net/websocket"
 )
 
 type TTYPE int
@@ -33,6 +34,11 @@ type stub struct {
 	_ttype     TTYPE
 }
 
+type wsStub struct {
+	_pattern string
+	_handler *wsHandler
+}
+
 func NewTlnet() *tlnet {
 	t := new(tlnet)
 	t._processors = make([]*stub, 0)
@@ -41,6 +47,7 @@ func NewTlnet() *tlnet {
 	t._server = new(http.Server)
 	t._serverMux = http.NewServeMux()
 	t._server.Handler = t._serverMux
+	t._wss = make([]*wsStub, 0)
 	return t
 }
 
@@ -52,6 +59,7 @@ type tlnet struct {
 	_staticHandlers []*stub
 	_server         *http.Server
 	_serverMux      *http.ServeMux
+	_wss            []*wsStub
 }
 
 // TLSConfig optionally provides a TLS configuration for use
@@ -184,6 +192,11 @@ func (this *tlnet) _Handle() {
 	for _, s := range this._staticHandlers {
 		this._serverMux.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: this._maxBytes, _stub: s, _staticHandler: http.FileServer(http.Dir(s._dir))}))
 	}
+	if len(this._wss) > 0 {
+		for _, s := range this._wss {
+			this._serverMux.Handle(s._pattern, s._handler)
+		}
+	}
 }
 
 type httpHandler struct {
@@ -198,7 +211,7 @@ func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if this._maxBytes > 0 {
 		r.Body = http.MaxBytesReader(w, r.Body, this._maxBytes)
 	}
-	//只作用于静态页面上
+	//作用于静态页面
 	if this._staticHandler != nil && this._stub._filter != nil && this._stub._filter.notFoundhandler != nil {
 		dir := this._stub._dir
 		if !strings.HasSuffix(dir, "/") {
@@ -232,6 +245,43 @@ func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if this._staticHandler != nil {
 		this._staticHandler.ServeHTTP(w, r)
+	}
+}
+
+type wsHandler struct {
+	hc              *HttpContext
+	httpContextFunc func(hc *HttpContext)
+}
+
+func checkOrigin(config *websocket.Config, req *http.Request) (err error) {
+	config.Origin, err = websocket.Origin(config, req)
+	if err == nil && config.Origin == nil {
+		return fmt.Errorf("null origin")
+	}
+	return err
+}
+
+// ServeHTTP implements the http.Handler interface for a WebSocket
+func (this wsHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	this.hc = newHttpContext(w, req)
+	s := websocket.Server{Handler: this.wsConnFunc, Handshake: checkOrigin}
+	s.ServeHTTP(w, req)
+}
+
+func (this wsHandler) wsConnFunc(ws *websocket.Conn) {
+	// hc := newHttpContext(nil, ws.Request())
+	for {
+		var byt []byte
+		if err := websocket.Message.Receive(ws, &byt); err != nil {
+			break
+		}
+		this.hc.WS.rbody = byt
+		this.httpContextFunc(this.hc)
+		if this.hc.WS.wbody != nil {
+			if err := websocket.Message.Send(ws, this.hc.WS.wbody); err != nil {
+				break
+			}
+		}
 	}
 }
 

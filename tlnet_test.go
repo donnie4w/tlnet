@@ -13,6 +13,7 @@ import (
 
 	"github.com/donnie4w/simplelog/logging"
 	. "github.com/donnie4w/tlnet/db"
+	"golang.org/x/net/websocket"
 )
 
 type TestObj struct {
@@ -112,9 +113,10 @@ func Test_tlnet(t *testing.T) {
 	tlnet.AddHandlerFunc("/aaa", nil, aaa)
 	tlnet.AddHandlerFunc("/bbb", notFoundFilter(), aaa)
 	tlnet.AddProcessor("/ppp", nil)
-	tlnet.AddStaticHandler("/", "tl.db", staticFilter(), nil)
-	OpenView(6789)
-	tlnet.HttpStart(8080)
+	tlnet.AddStaticHandler("/", "./", nil, nil)
+	tlnet.WebSocketHandle("/ws", websocketFunc)
+	OpenView(3434)
+	tlnet.HttpStart(8082)
 }
 
 func _Test_tlnet2(t *testing.T) {
@@ -200,4 +202,40 @@ func permission(w ResponseWriter, r *Request) bool {
 	err := r.Body.Close()
 	logging.Debug(err)
 	return true
+}
+
+func websocketFunc(hc *HttpContext) {
+	logging.Debug(hc.ReqInfo)
+	logging.Debug(hc.ReqInfo.RemoteAddr)
+	logging.Debug("收到:", string(hc.WS.Read()))
+	// hc.WS.Send([]byte("好了"))
+	hc.WS.Send("你发送的是：" + string(hc.WS.Read()))
+}
+
+func Echo(ws *websocket.Conn) {
+	var err error
+	for {
+		// var reply string
+		var byt []byte
+		if err = websocket.Message.Receive(ws, &byt); err != nil {
+			logging.Debug("Can't receive")
+			break
+		}
+		logging.Debug(ws.Request().Header)
+		logging.Debug(ws.Request().Method)
+		logging.Debug(ws.Request().UserAgent())
+
+		logging.Debug(ws.Request().RemoteAddr)
+		reply := string(byt)
+		logging.Debug("byt:", reply)
+		logging.Debug("Received back from client: " + "")
+
+		msg := "Received: " + reply
+		logging.Debug("Sending to client: " + msg)
+		ws.Write([]byte("999999999999999"))
+		if err = websocket.Message.Send(ws, msg); err != nil {
+			logging.Debug("Can't send")
+			break
+		}
+	}
 }
