@@ -249,7 +249,6 @@ func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type wsHandler struct {
-	hc              *HttpContext
 	httpContextFunc func(hc *HttpContext)
 }
 
@@ -263,25 +262,21 @@ func checkOrigin(config *websocket.Config, req *http.Request) (err error) {
 
 // ServeHTTP implements the http.Handler interface for a WebSocket
 func (this wsHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	this.hc = newHttpContext(w, req)
 	s := websocket.Server{Handler: this.wsConnFunc, Handshake: checkOrigin}
 	s.ServeHTTP(w, req)
 }
 
 func (this wsHandler) wsConnFunc(ws *websocket.Conn) {
-	// hc := newHttpContext(nil, ws.Request())
-	for {
+	hc := newHttpContext(nil, ws.Request())
+	hc.WS.ws = ws
+	for hc.WS.onError == nil {
 		var byt []byte
 		if err := websocket.Message.Receive(ws, &byt); err != nil {
+			hc.WS.onError = err
 			break
 		}
-		this.hc.WS.rbody = byt
-		this.httpContextFunc(this.hc)
-		if this.hc.WS.wbody != nil {
-			if err := websocket.Message.Send(ws, this.hc.WS.wbody); err != nil {
-				break
-			}
-		}
+		hc.WS.rbody = byt
+		this.httpContextFunc(hc)
 	}
 }
 
