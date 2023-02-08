@@ -269,10 +269,10 @@ func (this wsHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 func (this wsHandler) wsConnFunc(ws *websocket.Conn) {
 	hc := newHttpContext(nil, ws.Request())
 	hc.WS.ws = ws
-	for hc.WS.onError == nil {
+	for hc.WS.OnError == nil {
 		var byt []byte
 		if err := websocket.Message.Receive(ws, &byt); err != nil {
-			hc.WS.onError = err
+			hc.WS.OnError = err
 			break
 		}
 		hc.WS.rbody = byt

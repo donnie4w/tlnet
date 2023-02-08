@@ -3,6 +3,7 @@ package tlnet
 import (
 	"net/http"
 	"regexp"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/net/websocket"
@@ -15,16 +16,16 @@ type Websocket struct {
 	rbody   []byte
 	wbody   interface{}
 	ws      *websocket.Conn
-	onError error
+	OnError error
 }
 
 func (this *Websocket) Send(v interface{}) (err error) {
-	if this.onError == nil {
+	if this.OnError == nil {
 		err = websocket.Message.Send(this.ws, v)
-		this.onError = err
+		this.OnError = err
 		return
 	} else {
-		return this.onError
+		return this.OnError
 	}
 }
 
@@ -50,10 +51,13 @@ type HttpContext struct {
 	WS      *Websocket
 }
 
+var _seqId int64
+
 func newHttpContext(w http.ResponseWriter, r *http.Request) *HttpContext {
 	hi := new(HttpInfo)
 	hi.Header, hi.Host, hi.Method, hi.Path, hi.RemoteAddr, hi.Uri, hi.UserAgent, hi.Referer = r.Header, r.Host, r.Method, r.URL.Path, r.RemoteAddr, r.RequestURI, r.UserAgent(), r.Referer()
-	return &HttpContext{w, r, hi, &Websocket{Id: time.Now().UnixNano()}}
+	atomic.AddInt64(&_seqId, 1)
+	return &HttpContext{w, r, hi, &Websocket{Id: time.Now().UnixNano() + _seqId}}
 }
 
 func (this *HttpContext) GetCookie(name string) (_r string, err error) {
