@@ -9,11 +9,8 @@ import (
 	"testing"
 	"time"
 
-	// "time"
-
 	"github.com/donnie4w/simplelog/logging"
 	. "github.com/donnie4w/tlnet/db"
-	"golang.org/x/net/websocket"
 )
 
 type TestObj struct {
@@ -113,10 +110,11 @@ func Test_tlnet(t *testing.T) {
 	tlnet.AddHandlerFunc("/aaa", nil, aaa)
 	tlnet.AddHandlerFunc("/bbb", notFoundFilter(), aaa)
 	tlnet.AddProcessor("/ppp", nil)
+	tlnet.Handle("/notify", notify)
 	tlnet.AddStaticHandler("/", "./", nil, nil)
 	tlnet.WebSocketHandle("/ws", websocketFunc)
 	OpenView(3434)
-	tlnet.HttpStart(8082)
+	tlnet.HttpStart(":8082")
 }
 
 func _Test_tlnet2(t *testing.T) {
@@ -125,7 +123,7 @@ func _Test_tlnet2(t *testing.T) {
 	tlnet.SetMaxBytesReader((1 << 20) * 50)
 	tlnet.Handle("/qq", handleFunc)
 	tlnet.StaticDir("/s", "test.db", staticHandleFunc)
-	tlnet.HttpStart(8080)
+	tlnet.HttpStart(":8080")
 }
 
 func handleFunc(hc *HttpContext) {
@@ -204,38 +202,30 @@ func permission(w ResponseWriter, r *Request) bool {
 	return true
 }
 
-func websocketFunc(hc *HttpContext) {
-	logging.Debug(hc.ReqInfo)
-	logging.Debug(hc.ReqInfo.RemoteAddr)
-	logging.Debug("收到:", string(hc.WS.Read()))
-	// hc.WS.Send([]byte("好了"))
-	hc.WS.Send("你发送的是：" + string(hc.WS.Read()))
+func notify(hc *HttpContext) {
+	for _, v := range wsmap {
+		v.WS.Send(fmt.Sprint("通知：", time.Now()))
+	}
 }
 
-func Echo(ws *websocket.Conn) {
-	var err error
-	for {
-		// var reply string
-		var byt []byte
-		if err = websocket.Message.Receive(ws, &byt); err != nil {
-			logging.Debug("Can't receive")
-			break
-		}
-		logging.Debug(ws.Request().Header)
-		logging.Debug(ws.Request().Method)
-		logging.Debug(ws.Request().UserAgent())
+var wsmap = make(map[int64]*HttpContext, 0)
 
-		logging.Debug(ws.Request().RemoteAddr)
-		reply := string(byt)
-		logging.Debug("byt:", reply)
-		logging.Debug("Received back from client: " + "")
+func websocketFunc(hc *HttpContext) {
+	_, ok := wsmap[hc.WS.Id]
+	if !ok {
+		wsmap[hc.WS.Id] = hc
+	}
+	logging.Debug(hc.ReqInfo)
+	logging.Debug(hc.ReqInfo.RemoteAddr)
+	msg := string(hc.WS.Read())
+	logging.Debug("收到:", msg)
+	// hc.WS.Send([]byte("好了"))
+	// hc.WS.Send("你发送的是：" + string(hc.WS.Read()))
 
-		msg := "Received: " + reply
-		logging.Debug("Sending to client: " + msg)
-		ws.Write([]byte("999999999999999"))
-		if err = websocket.Message.Send(ws, msg); err != nil {
-			logging.Debug("Can't send")
-			break
+	for k, v := range wsmap {
+		if k != hc.WS.Id {
+			v.WS.Send(fmt.Sprint("这是", hc.WS.Id, "发送的信息:", msg))
 		}
 	}
+
 }

@@ -26,7 +26,7 @@ func data_view(port int32) {
 	tl.Handle("/backup", backup)
 	tl.Handle("/load", load)
 	logging.Debug("open data view server :", port)
-	err := tl.HttpStart(port)
+	err := tl.HttpStart(fmt.Sprint(":", port))
 	logging.Error("err:", err.Error())
 }
 

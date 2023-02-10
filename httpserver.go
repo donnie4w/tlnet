@@ -158,9 +158,9 @@ func (this *tlnet) AddStaticHandler(pattern string, dir string, f *Filter, handl
 }
 
 /**http**/
-func (this *tlnet) HttpStart(port int32) (err error) {
+func (this *tlnet) HttpStart(addr string) (err error) {
 	this._Handle()
-	this._server.Addr = fmt.Sprint(":", port)
+	this._server.Addr = addr
 	err = this._server.ListenAndServe()
 	if err != nil {
 		logging.Error("tlnet start error:", err.Error())
@@ -169,9 +169,9 @@ func (this *tlnet) HttpStart(port int32) (err error) {
 }
 
 /**http tls**/
-func (this *tlnet) HttpStartTLS(port int32, certFile, keyFile string) (err error) {
+func (this *tlnet) HttpStartTLS(addr string, certFile, keyFile string) (err error) {
 	this._Handle()
-	this._server.Addr = fmt.Sprint(":", port)
+	this._server.Addr = addr
 	err = this._server.ListenAndServeTLS(certFile, keyFile)
 	if err != nil {
 		logging.Error("tlnet startTLS error:", err.Error())
