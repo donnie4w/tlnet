@@ -107,6 +107,7 @@ func Test_tlnet(t *testing.T) {
 	tlnet := NewTlnet()
 	tlnet.DBPath("tl.db")
 	tlnet.SetMaxBytesReader((1 << 20) * 50)
+	tlnet.StaticHandleWithFilter("/cccc/", "db", notFoundFilter(), nil)
 	tlnet.AddHandlerFunc("/aaa", nil, aaa)
 	tlnet.AddHandlerFunc("/bbb", notFoundFilter(), aaa)
 	tlnet.AddProcessor("/ppp", nil)
@@ -122,7 +123,7 @@ func _Test_tlnet2(t *testing.T) {
 	// tlnet.DBPath("test.db")
 	tlnet.SetMaxBytesReader((1 << 20) * 50)
 	tlnet.Handle("/qq", handleFunc)
-	tlnet.StaticDir("/s", "test.db", staticHandleFunc)
+	tlnet.StaticHandle("/s", "test.db", staticHandleFunc)
 	tlnet.HttpStart(":8080")
 }
 
@@ -144,7 +145,8 @@ func staticHandleFunc(hc *HttpContext) {
 
 func notFoundFilter() *Filter {
 	f := NewFilter()
-	f.AddNotFoundPageIntercept(notFound)
+	f.AddPageNotFoundIntercept(notFound)
+
 	return f
 }
 
@@ -154,10 +156,10 @@ func aaa(w ResponseWriter, r *Request) {
 	io.WriteString(w, "hello aaa 你访问成功了")
 }
 
-func notFound(w ResponseWriter, r *Request) bool {
+func notFound(hc *HttpContext) bool {
 	logging.Debug("notFound")
-	logging.Debug(fmt.Sprint(r.Header))
-	io.WriteString(w, "not found 404")
+	logging.Debug(hc.ReqInfo.Header)
+	hc.ResponseString(0, "not found")
 	return true
 }
 
@@ -177,28 +179,20 @@ func httpFilter() *Filter {
 	return f
 }
 
-func suffixIntercept(w ResponseWriter, r *Request) bool {
-	io.WriteString(w, "html is not allowed")
+func suffixIntercept(hc *HttpContext) bool {
+	hc.ResponseString(0, "html is not allowed")
 	return true
 }
 
 func staticFilter() *Filter {
 	f := NewFilter()
-	f.AddNotFoundPageIntercept(permission)
-	f.AddGlobalIntercept("[ab]", globalIntercept)
+	f.AddPageNotFoundIntercept(notFound)
+	f.AddIntercept("[ab]", globalIntercept)
 	return f
 }
 
-func globalIntercept(w ResponseWriter, r *Request) bool {
-	io.WriteString(w, "globalIntercept")
-	return true
-}
-
-func permission(w ResponseWriter, r *Request) bool {
-	logging.Debug("permission")
-	logging.Debug(fmt.Sprint(r.Header))
-	err := r.Body.Close()
-	logging.Debug(err)
+func globalIntercept(hc *HttpContext) bool {
+	hc.ResponseString(0, "globalIntercept")
 	return true
 }
 

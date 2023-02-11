@@ -20,24 +20,28 @@ type Filter struct {
 }
 
 //suffixs 拦截器后缀数组，handler返回true则 不再进行其他流程判断，直接返回
-func (this *Filter) AddSuffixIntercept(suffixs []string, _handler func(ResponseWriter, *Request) bool) {
+func (this *Filter) AddSuffixIntercept(suffixs []string, handlerFunc func(hc *HttpContext) bool) {
 	for _, v := range suffixs {
 		if strings.Contains(v, ".") {
 			v = v[strings.LastIndex(v, ".")+1:]
 		}
 		this.suffixMap[v] = 1
 	}
-	this.suffixHandler = _handler
+	this.suffixHandler = func(w ResponseWriter, r *Request) bool {
+		return handlerFunc(newHttpContext(w, r))
+	}
 }
 
-//通用拦截器 ，handler返回true则 不再进行其他流程判断，直接返回
-func (this *Filter) AddGlobalIntercept(_pattern string, _handler func(ResponseWriter, *Request) bool) {
-	this.matchMap[_pattern] = _handler
-}
+// //通用拦截器 ，handler返回true则 不再进行其他流程判断，直接返回
+// func (this *Filter) AddGlobalIntercept(_pattern string, _handler func(ResponseWriter, *Request) bool) {
+// 	this.matchMap[_pattern] = _handler
+// }
 
 //路径找不到拦截器 ，handler返回true则 不再进行其他流程判断，直接返回
-func (this *Filter) AddNotFoundPageIntercept(_handler func(ResponseWriter, *Request) bool) {
-	this.notFoundhandler = _handler
+func (this *Filter) AddPageNotFoundIntercept(handlerFunc func(hc *HttpContext) bool) {
+	this.notFoundhandler = func(w ResponseWriter, r *Request) bool {
+		return handlerFunc(newHttpContext(w, r))
+	}
 }
 
 //过滤器增加拦截规则

@@ -24,7 +24,7 @@ func (this *tlnet) HandleWithFilter(pattern string, _filter *Filter, handlerFunc
 	})
 }
 
-func (this *tlnet) StaticDir(pattern, dir string, handlerFunc func(hc *HttpContext)) {
+func (this *tlnet) StaticHandle(pattern, dir string, handlerFunc func(hc *HttpContext)) {
 	if handlerFunc != nil {
 		this.AddStaticHandler(pattern, dir, nil, func(w http.ResponseWriter, r *http.Request) {
 			handlerFunc(newHttpContext(w, r))
@@ -34,7 +34,7 @@ func (this *tlnet) StaticDir(pattern, dir string, handlerFunc func(hc *HttpConte
 	}
 }
 
-func (this *tlnet) StaticDirWithFilter(pattern, dir string, _filter *Filter, handlerFunc func(hc *HttpContext)) {
+func (this *tlnet) StaticHandleWithFilter(pattern, dir string, _filter *Filter, handlerFunc func(hc *HttpContext)) {
 	if handlerFunc != nil {
 		this.AddStaticHandler(pattern, dir, _filter, func(w http.ResponseWriter, r *http.Request) {
 			handlerFunc(newHttpContext(w, r))

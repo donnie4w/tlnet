@@ -151,9 +151,9 @@ func (this *tlnet) AddHandlerFunc(pattern string, f *Filter, handlerFunc func(Re
 
 //处理静态页面
 func (this *tlnet) AddStaticHandler(pattern string, dir string, f *Filter, handlerFunc func(ResponseWriter, *Request)) {
-	if !strings.HasSuffix(pattern, "/") {
-		pattern = fmt.Sprint(pattern, "/")
-	}
+	// if !strings.HasSuffix(pattern, "/") {
+	// 	pattern = fmt.Sprint(pattern, "/")
+	// }
 	this._staticHandlers = append(this._staticHandlers, &stub{_pattern: pattern, _dir: dir, _filter: f, _handler: handlerFunc})
 }
 
@@ -211,7 +211,7 @@ func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if this._maxBytes > 0 {
 		r.Body = http.MaxBytesReader(w, r.Body, this._maxBytes)
 	}
-	//作用于静态页面
+	// static server
 	if this._staticHandler != nil && this._stub._filter != nil && this._stub._filter.notFoundhandler != nil {
 		dir := this._stub._dir
 		if !strings.HasSuffix(dir, "/") {
@@ -268,14 +268,14 @@ func (this wsHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 func (this wsHandler) wsConnFunc(ws *websocket.Conn) {
 	hc := newHttpContext(nil, ws.Request())
-	hc.WS.ws = ws
+	hc.WS.Conn = ws
 	for hc.WS.OnError == nil {
 		var byt []byte
 		if err := websocket.Message.Receive(ws, &byt); err != nil {
 			hc.WS.OnError = err
 			break
 		}
-		hc.WS.rbody = byt
+		hc.WS._rbody = byt
 		this.httpContextFunc(hc)
 	}
 }
