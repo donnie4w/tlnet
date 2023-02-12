@@ -13,15 +13,15 @@ import (
 
 type Websocket struct {
 	Id      int64
-	rbody   []byte
-	wbody   interface{}
-	ws      *websocket.Conn
+	_rbody  []byte
+	_wbody  interface{}
+	Conn    *websocket.Conn
 	OnError error
 }
 
 func (this *Websocket) Send(v interface{}) (err error) {
 	if this.OnError == nil {
-		err = websocket.Message.Send(this.ws, v)
+		err = websocket.Message.Send(this.Conn, v)
 		this.OnError = err
 		return
 	} else {
@@ -30,7 +30,11 @@ func (this *Websocket) Send(v interface{}) (err error) {
 }
 
 func (this *Websocket) Read() []byte {
-	return this.rbody
+	return this._rbody
+}
+
+func (this *Websocket) Close() error {
+	return this.Conn.Close()
 }
 
 type HttpInfo struct {

@@ -34,9 +34,23 @@ type stub struct {
 	_ttype     TTYPE
 }
 
+func newStub(pattern, dir string, filter *Filter, handler func(ResponseWriter, *Request), processor thrift.TProcessor, ttype TTYPE) *stub {
+	if pattern[0] != '/' {
+		panic(fmt.Sprint("pattern error,[", pattern, "] must begin with '/'"))
+	}
+	return &stub{pattern, dir, filter, handler, processor, ttype}
+}
+
 type wsStub struct {
 	_pattern string
 	_handler *wsHandler
+}
+
+func newWsStub(pattern string, handler *wsHandler) *wsStub {
+	if pattern[0] != '/' {
+		panic(fmt.Sprint("pattern error,[", pattern, "] must begin with '/'"))
+	}
+	return &wsStub{pattern, handler}
 }
 
 func NewTlnet() *tlnet {
@@ -48,6 +62,7 @@ func NewTlnet() *tlnet {
 	t._serverMux = http.NewServeMux()
 	t._server.Handler = t._serverMux
 	t._wss = make([]*wsStub, 0)
+	t._methodpattern = make(map[string]string, 0)
 	return t
 }
 
@@ -60,6 +75,7 @@ type tlnet struct {
 	_server         *http.Server
 	_serverMux      *http.ServeMux
 	_wss            []*wsStub
+	_methodpattern  map[string]string
 }
 
 // TLSConfig optionally provides a TLS configuration for use
@@ -133,20 +149,26 @@ func (this *tlnet) SetMaxBytesReader(maxBytes int64) {
 
 //处理thrift协议请求
 func (this *tlnet) AddProcessor(pattern string, processor thrift.TProcessor) {
-	this._processors = append(this._processors, &stub{_pattern: pattern, _processor: processor, _ttype: JSON})
+	this._addProcessor(pattern, processor, JSON)
 }
 
 func (this *tlnet) AddBinaryProcessor(pattern string, processor thrift.TProcessor) {
-	this._processors = append(this._processors, &stub{_pattern: pattern, _processor: processor, _ttype: BINARY})
+	this._addProcessor(pattern, processor, BINARY)
 }
 
 func (this *tlnet) AddCompactProcessor(pattern string, processor thrift.TProcessor) {
-	this._processors = append(this._processors, &stub{_pattern: pattern, _processor: processor, _ttype: COMPACT})
+	this._addProcessor(pattern, processor, COMPACT)
+}
+
+func (this *tlnet) _addProcessor(pattern string, processor thrift.TProcessor, ttype TTYPE) {
+	// this._processors = append(this._processors, &stub{_pattern: pattern, _processor: processor, _ttype: ttype})
+	this._processors = append(this._processors, newStub(pattern, "", nil, nil, processor, ttype))
 }
 
 //处理动态请求
 func (this *tlnet) AddHandlerFunc(pattern string, f *Filter, handlerFunc func(ResponseWriter, *Request)) {
-	this._handlers = append(this._handlers, &stub{_pattern: pattern, _filter: f, _handler: handlerFunc})
+	// this._handlers = append(this._handlers, &stub{_pattern: pattern, _filter: f, _handler: handlerFunc})
+	this._handlers = append(this._handlers, newStub(pattern, "", f, handlerFunc, nil, 0))
 }
 
 //处理静态页面
@@ -154,7 +176,9 @@ func (this *tlnet) AddStaticHandler(pattern string, dir string, f *Filter, handl
 	// if !strings.HasSuffix(pattern, "/") {
 	// 	pattern = fmt.Sprint(pattern, "/")
 	// }
-	this._staticHandlers = append(this._staticHandlers, &stub{_pattern: pattern, _dir: dir, _filter: f, _handler: handlerFunc})
+	// this._staticHandlers = append(this._staticHandlers, &stub{_pattern: pattern, _dir: dir, _filter: f, _handler: handlerFunc})
+
+	this._staticHandlers = append(this._staticHandlers, newStub(pattern, dir, f, handlerFunc, nil, 0))
 }
 
 /**http**/
@@ -184,13 +208,13 @@ func (this *tlnet) _Handle() {
 		UseSimpleDB(this._dbPath)
 	}
 	for _, s := range this._processors {
-		this._serverMux.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: this._maxBytes, _stub: s}))
+		this._serverMux.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: this._maxBytes, _stub: s, _tlnet: this}))
 	}
 	for _, s := range this._handlers {
-		this._serverMux.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: this._maxBytes, _stub: s}))
+		this._serverMux.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: this._maxBytes, _stub: s, _tlnet: this}))
 	}
 	for _, s := range this._staticHandlers {
-		this._serverMux.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: this._maxBytes, _stub: s, _staticHandler: http.FileServer(http.Dir(s._dir))}))
+		this._serverMux.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: this._maxBytes, _stub: s, _staticHandler: http.FileServer(http.Dir(s._dir)), _tlnet: this}))
 	}
 	if len(this._wss) > 0 {
 		for _, s := range this._wss {
@@ -203,7 +227,29 @@ type httpHandler struct {
 	_maxBytes      int64
 	_stub          *stub
 	_staticHandler http.Handler
+	_tlnet         *tlnet
 }
+
+// func _checkmethod(path string, m map[string]string) (methed string, ok bool) {
+// 	logging.Debug(path)
+// 	path = path[:_getLastLetterIndex(path, "/")]
+// 	logging.Debug("====>", path)
+// 	if methed, ok = m[path]; len(path) > 0 && !ok {
+// 		return _checkmethod(path[:len(path)-1], m)
+// 	}
+// 	return
+// }
+
+// func _getLastLetterIndex(s, _i string) (i int) {
+// 	logging.Debug("len:", len(s))
+// 	for i = len(s); i > 0; i-- {
+// 		if s[i-1:i] == _i {
+// 			logging.Debug("i:", i)
+// 			return
+// 		}
+// 	}
+// 	return
+// }
 
 func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
@@ -211,10 +257,42 @@ func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if this._maxBytes > 0 {
 		r.Body = http.MaxBytesReader(w, r.Body, this._maxBytes)
 	}
+	if len(this._tlnet._methodpattern) > 0 {
+		uri := r.RequestURI
+		url_uri := r.URL.RequestURI()
+		if url_uri[0] == '/' {
+			url_uri = url_uri[1:]
+		}
+		var root string
+		var method string
+		var ok bool
+		if a, b := len(uri), len(url_uri); a != b {
+			root = r.RequestURI[:(a - b)]
+			method, ok = this._tlnet._methodpattern[root]
+		}
+		// else {
+		// 	var checkpattern string
+		// 	logging.Debug("path:", path)
+		// 	if path[0] == '/' {
+		// 		checkpattern = path
+		// 	} else {
+		// 		checkpattern = fmt.Sprint("/", path)
+		// 	}
+
+		// 	if method, ok = this._tlnet._methodpattern[checkpattern]; !ok {
+		// 		method, ok = _checkmethod(checkpattern[:len(checkpattern)-1], this._tlnet._methodpattern)
+		// 	}
+		// }
+		if ok && method != strings.ToUpper(r.Method) {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+	}
+
 	// static server
 	if this._staticHandler != nil && this._stub._filter != nil && this._stub._filter.notFoundhandler != nil {
 		dir := this._stub._dir
-		if !strings.HasSuffix(dir, "/") {
+		if dir[len(dir)-1:] != "/" {
 			dir = fmt.Sprint(dir, "/")
 		}
 		if _, err := os.Stat(dir + path); os.IsNotExist(err) {
@@ -267,6 +345,7 @@ func (this wsHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func (this wsHandler) wsConnFunc(ws *websocket.Conn) {
+	defer ws.Close()
 	hc := newHttpContext(nil, ws.Request())
 	hc.WS.Conn = ws
 	for hc.WS.OnError == nil {

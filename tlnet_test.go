@@ -111,7 +111,7 @@ func Test_tlnet(t *testing.T) {
 	tlnet.AddHandlerFunc("/aaa", nil, aaa)
 	tlnet.AddHandlerFunc("/bbb", notFoundFilter(), aaa)
 	tlnet.AddProcessor("/ppp", nil)
-	tlnet.Handle("/notify", notify)
+	tlnet.Post("/notify", notify)
 	tlnet.AddStaticHandler("/", "./", nil, nil)
 	tlnet.WebSocketHandle("/ws", websocketFunc)
 	OpenView(3434)

@@ -14,8 +14,53 @@ func (this *tlnet) Handle(pattern string, handlerFunc func(hc *HttpContext)) {
 	})
 }
 
+func (this *tlnet) Post(pattern string, handlerFunc func(hc *HttpContext)) {
+	this._methodpattern[pattern] = http.MethodPost
+	this.Handle(pattern, handlerFunc)
+}
+
+func (this *tlnet) Patch(pattern string, handlerFunc func(hc *HttpContext)) {
+	this._methodpattern[pattern] = http.MethodPatch
+	this.Handle(pattern, handlerFunc)
+}
+
+func (this *tlnet) Put(pattern string, handlerFunc func(hc *HttpContext)) {
+	this._methodpattern[pattern] = http.MethodPut
+	this.Handle(pattern, handlerFunc)
+}
+
+func (this *tlnet) Delete(pattern string, handlerFunc func(hc *HttpContext)) {
+	this._methodpattern[pattern] = http.MethodDelete
+	this.Handle(pattern, handlerFunc)
+}
+
+func (this *tlnet) Get(pattern string, handlerFunc func(hc *HttpContext)) {
+	this._methodpattern[pattern] = http.MethodGet
+	this.Handle(pattern, handlerFunc)
+}
+
+func (this *tlnet) Options(pattern string, handlerFunc func(hc *HttpContext)) {
+	this._methodpattern[pattern] = http.MethodOptions
+	this.Handle(pattern, handlerFunc)
+}
+
+func (this *tlnet) Head(pattern string, handlerFunc func(hc *HttpContext)) {
+	this._methodpattern[pattern] = http.MethodHead
+	this.Handle(pattern, handlerFunc)
+}
+
+func (this *tlnet) Trace(pattern string, handlerFunc func(hc *HttpContext)) {
+	this._methodpattern[pattern] = http.MethodTrace
+	this.Handle(pattern, handlerFunc)
+}
+
+func (this *tlnet) Connect(pattern string, handlerFunc func(hc *HttpContext)) {
+	this._methodpattern[pattern] = http.MethodConnect
+	this.Handle(pattern, handlerFunc)
+}
+
 func (this *tlnet) WebSocketHandle(pattern string, handlerFunc func(hc *HttpContext)) {
-	this._wss = append(this._wss, &wsStub{pattern, &wsHandler{httpContextFunc: handlerFunc}})
+	this._wss = append(this._wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc}))
 }
 
 func (this *tlnet) HandleWithFilter(pattern string, _filter *Filter, handlerFunc func(hc *HttpContext)) {
