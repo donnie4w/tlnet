@@ -14,52 +14,52 @@ func (this *tlnet) Handle(pattern string, handlerFunc func(hc *HttpContext)) {
 	})
 }
 
-func (this *tlnet) Post(pattern string, handlerFunc func(hc *HttpContext)) {
+func (this *tlnet) POST(pattern string, handlerFunc func(hc *HttpContext)) {
 	this._methodpattern[pattern] = http.MethodPost
 	this.Handle(pattern, handlerFunc)
 }
 
-func (this *tlnet) Patch(pattern string, handlerFunc func(hc *HttpContext)) {
+func (this *tlnet) PATCH(pattern string, handlerFunc func(hc *HttpContext)) {
 	this._methodpattern[pattern] = http.MethodPatch
 	this.Handle(pattern, handlerFunc)
 }
 
-func (this *tlnet) Put(pattern string, handlerFunc func(hc *HttpContext)) {
+func (this *tlnet) PUT(pattern string, handlerFunc func(hc *HttpContext)) {
 	this._methodpattern[pattern] = http.MethodPut
 	this.Handle(pattern, handlerFunc)
 }
 
-func (this *tlnet) Delete(pattern string, handlerFunc func(hc *HttpContext)) {
+func (this *tlnet) DELETE(pattern string, handlerFunc func(hc *HttpContext)) {
 	this._methodpattern[pattern] = http.MethodDelete
 	this.Handle(pattern, handlerFunc)
 }
 
-func (this *tlnet) Get(pattern string, handlerFunc func(hc *HttpContext)) {
+func (this *tlnet) GET(pattern string, handlerFunc func(hc *HttpContext)) {
 	this._methodpattern[pattern] = http.MethodGet
 	this.Handle(pattern, handlerFunc)
 }
 
-func (this *tlnet) Options(pattern string, handlerFunc func(hc *HttpContext)) {
+func (this *tlnet) OPTIONS(pattern string, handlerFunc func(hc *HttpContext)) {
 	this._methodpattern[pattern] = http.MethodOptions
 	this.Handle(pattern, handlerFunc)
 }
 
-func (this *tlnet) Head(pattern string, handlerFunc func(hc *HttpContext)) {
+func (this *tlnet) HEAD(pattern string, handlerFunc func(hc *HttpContext)) {
 	this._methodpattern[pattern] = http.MethodHead
 	this.Handle(pattern, handlerFunc)
 }
 
-func (this *tlnet) Trace(pattern string, handlerFunc func(hc *HttpContext)) {
+func (this *tlnet) TRACE(pattern string, handlerFunc func(hc *HttpContext)) {
 	this._methodpattern[pattern] = http.MethodTrace
 	this.Handle(pattern, handlerFunc)
 }
 
-func (this *tlnet) Connect(pattern string, handlerFunc func(hc *HttpContext)) {
+func (this *tlnet) CONNECT(pattern string, handlerFunc func(hc *HttpContext)) {
 	this._methodpattern[pattern] = http.MethodConnect
 	this.Handle(pattern, handlerFunc)
 }
 
-func (this *tlnet) WebSocketHandle(pattern string, handlerFunc func(hc *HttpContext)) {
+func (this *tlnet) HandleWebSocket(pattern string, handlerFunc func(hc *HttpContext)) {
 	this._wss = append(this._wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc}))
 }
 
@@ -69,7 +69,7 @@ func (this *tlnet) HandleWithFilter(pattern string, _filter *Filter, handlerFunc
 	})
 }
 
-func (this *tlnet) StaticHandle(pattern, dir string, handlerFunc func(hc *HttpContext)) {
+func (this *tlnet) HandleStatic(pattern, dir string, handlerFunc func(hc *HttpContext)) {
 	if handlerFunc != nil {
 		this.AddStaticHandler(pattern, dir, nil, func(w http.ResponseWriter, r *http.Request) {
 			handlerFunc(newHttpContext(w, r))
@@ -79,7 +79,7 @@ func (this *tlnet) StaticHandle(pattern, dir string, handlerFunc func(hc *HttpCo
 	}
 }
 
-func (this *tlnet) StaticHandleWithFilter(pattern, dir string, _filter *Filter, handlerFunc func(hc *HttpContext)) {
+func (this *tlnet) HandleStaticWithFilter(pattern, dir string, _filter *Filter, handlerFunc func(hc *HttpContext)) {
 	if handlerFunc != nil {
 		this.AddStaticHandler(pattern, dir, _filter, func(w http.ResponseWriter, r *http.Request) {
 			handlerFunc(newHttpContext(w, r))
@@ -89,13 +89,19 @@ func (this *tlnet) StaticHandleWithFilter(pattern, dir string, _filter *Filter, 
 	}
 }
 
-func (this *HttpContext) ResponseString(status int, _s string) (err error) {
+//数据返回客户端
+//return the data to the client
+func (this *HttpContext) ResponseString(data string) (_r int, err error) {
+	return this.ResponseBytes(http.StatusOK, []byte(data))
+}
+
+func (this *HttpContext) ResponseBytes(status int, bs []byte) (_r int, err error) {
 	defer myRecover()
 	if status == 0 {
 		status = http.StatusOK
 	}
 	this.w.WriteHeader(status)
-	_, err = this.w.Write([]byte(_s))
+	_r, err = this.w.Write(bs)
 	return
 }
 
@@ -126,13 +132,14 @@ func (this *HttpContext) PostParams(key string) (_r []string) {
 	return this.r.Form[key]
 }
 
-func (this *HttpContext) Redirect(path string) (err error) {
+//重定向
+func (this *HttpContext) Redirect(path string) {
 	defer myRecover()
 	http.Redirect(this.w, this.r, path, http.StatusTemporaryRedirect)
 	return
 }
 
-func (this *HttpContext) RedirectWithStatus(path string, status int) (err error) {
+func (this *HttpContext) RedirectWithStatus(path string, status int) {
 	defer myRecover()
 	http.Redirect(this.w, this.r, path, http.StatusTemporaryRedirect)
 	return

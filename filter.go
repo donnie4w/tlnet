@@ -32,11 +32,6 @@ func (this *Filter) AddSuffixIntercept(suffixs []string, handlerFunc func(hc *Ht
 	}
 }
 
-// //通用拦截器 ，handler返回true则 不再进行其他流程判断，直接返回
-// func (this *Filter) AddGlobalIntercept(_pattern string, _handler func(ResponseWriter, *Request) bool) {
-// 	this.matchMap[_pattern] = _handler
-// }
-
 //路径找不到拦截器 ，handler返回true则 不再进行其他流程判断，直接返回
 func (this *Filter) AddPageNotFoundIntercept(handlerFunc func(hc *HttpContext) bool) {
 	this.notFoundhandler = func(w ResponseWriter, r *Request) bool {

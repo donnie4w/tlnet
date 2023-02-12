@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/http"
 	. "net/http"
 	"testing"
 	"time"
@@ -107,13 +106,13 @@ func Test_tlnet(t *testing.T) {
 	tlnet := NewTlnet()
 	tlnet.DBPath("tl.db")
 	tlnet.SetMaxBytesReader((1 << 20) * 50)
-	tlnet.StaticHandleWithFilter("/cccc/", "db", notFoundFilter(), nil)
+	tlnet.HandleStaticWithFilter("/cccc/", "db", notFoundFilter(), nil)
 	tlnet.AddHandlerFunc("/aaa", nil, aaa)
 	tlnet.AddHandlerFunc("/bbb", notFoundFilter(), aaa)
 	tlnet.AddProcessor("/ppp", nil)
-	tlnet.Post("/notify", notify)
+	tlnet.POST("/notify", notify)
 	tlnet.AddStaticHandler("/", "./", nil, nil)
-	tlnet.WebSocketHandle("/ws", websocketFunc)
+	tlnet.HandleWebSocket("/ws", websocketFunc)
 	OpenView(3434)
 	tlnet.HttpStart(":8082")
 }
@@ -123,7 +122,7 @@ func _Test_tlnet2(t *testing.T) {
 	// tlnet.DBPath("test.db")
 	tlnet.SetMaxBytesReader((1 << 20) * 50)
 	tlnet.Handle("/qq", handleFunc)
-	tlnet.StaticHandle("/s", "test.db", staticHandleFunc)
+	tlnet.HandleStatic("/s", "test.db", staticHandleFunc)
 	tlnet.HttpStart(":8080")
 }
 
@@ -133,7 +132,7 @@ func handleFunc(hc *HttpContext) {
 	// logging.Debug(hc.ReqInfo.Header.Get("X-Real-IP"))
 	// logging.Debug(hc.ReqInfo.Header.Get("X-Forward-For"))
 	logging.Debug(net.SplitHostPort(hc.ReqInfo.RemoteAddr))
-	hc.ResponseString(http.StatusOK, "hello tlnet")
+	hc.ResponseString("hello tlnet")
 }
 
 func staticHandleFunc(hc *HttpContext) {
@@ -159,7 +158,7 @@ func aaa(w ResponseWriter, r *Request) {
 func notFound(hc *HttpContext) bool {
 	logging.Debug("notFound")
 	logging.Debug(hc.ReqInfo.Header)
-	hc.ResponseString(0, "not found")
+	hc.ResponseString("not found")
 	return true
 }
 
@@ -180,7 +179,7 @@ func httpFilter() *Filter {
 }
 
 func suffixIntercept(hc *HttpContext) bool {
-	hc.ResponseString(0, "html is not allowed")
+	hc.ResponseString("html is not allowed")
 	return true
 }
 
@@ -192,7 +191,7 @@ func staticFilter() *Filter {
 }
 
 func globalIntercept(hc *HttpContext) bool {
-	hc.ResponseString(0, "globalIntercept")
+	hc.ResponseString("globalIntercept")
 	return true
 }
 

@@ -74,13 +74,13 @@ func search(hc *HttpContext) {
 	}
 	s = fmt.Sprint(s, "]}")
 	// htmlstring := loadfile("dataview.html")
-	hc.ResponseString(0, strings.ReplaceAll(htmlstring, "#####", s))
+	hc.ResponseString(strings.ReplaceAll(htmlstring, "#####", s))
 }
 
 func req(hc *HttpContext) {
 	key := hc.PostParam("key")
 	value, _ := SimpleDB().GetString([]byte(key))
-	hc.ResponseString(0, value)
+	hc.ResponseString(value)
 }
 
 func del(hc *HttpContext) {
@@ -107,7 +107,7 @@ func backup(hc *HttpContext) {
 		hc.Writer().Header().Set("Content-Length", fmt.Sprint(fileStat.Size()))
 		io.Copy(hc.Writer(), file)
 	} else {
-		hc.ResponseString(0, ackhtmlString("数据导出失败！"))
+		hc.ResponseString(ackhtmlString("数据导出失败！"))
 	}
 }
 
@@ -119,9 +119,9 @@ func load(hc *HttpContext) {
 		e = SimpleDB().LoadBytes(buf.Bytes())
 	}
 	if e == nil {
-		hc.ResponseString(0, ackhtmlString("文件导入成功！"))
+		hc.ResponseString(ackhtmlString("文件导入成功！"))
 	} else {
-		hc.ResponseString(0, ackhtmlString("文件导入失败！"))
+		hc.ResponseString(ackhtmlString("文件导入失败！"))
 	}
 
 }

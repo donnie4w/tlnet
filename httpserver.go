@@ -360,22 +360,20 @@ func (this wsHandler) wsConnFunc(ws *websocket.Conn) {
 }
 
 func processorHandler(w ResponseWriter, r *Request, processor thrift.TProcessor, _ttype TTYPE) {
-	if "POST" == strings.ToUpper(r.Method) {
-		var protocolFactory thrift.TProtocolFactory
-		switch _ttype {
-		case JSON:
-			protocolFactory = thrift.NewTJSONProtocolFactory()
-		case BINARY:
-			protocolFactory = thrift.NewTBinaryProtocolFactoryDefault()
-		case COMPACT:
-			protocolFactory = thrift.NewTCompactProtocolFactory()
-		}
-		transport := thrift.NewStreamTransport(r.Body, w)
-		ioProtocol := protocolFactory.GetProtocol(transport)
-		hc := newHttpContext(w, r)
-		_, err := processor.Process(context.WithValue(context.Background(), "HttpContext", hc), ioProtocol, ioProtocol)
-		if err != nil {
-			logging.Error("processorHandler Error:", err)
-		}
+	var protocolFactory thrift.TProtocolFactory
+	switch _ttype {
+	case JSON:
+		protocolFactory = thrift.NewTJSONProtocolFactory()
+	case BINARY:
+		protocolFactory = thrift.NewTBinaryProtocolFactoryDefault()
+	case COMPACT:
+		protocolFactory = thrift.NewTCompactProtocolFactory()
+	}
+	transport := thrift.NewStreamTransport(r.Body, w)
+	ioProtocol := protocolFactory.GetProtocol(transport)
+	hc := newHttpContext(w, r)
+	_, err := processor.Process(context.WithValue(context.Background(), "HttpContext", hc), ioProtocol, ioProtocol)
+	if err != nil {
+		logging.Error("processorHandler Error:", err)
 	}
 }
