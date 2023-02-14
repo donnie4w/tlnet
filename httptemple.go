@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/donnie4w/simplelog/logging"
 	. "github.com/donnie4w/tlnet/db"
 )
 
@@ -25,9 +24,9 @@ func data_view(port int32) {
 	tl.Handle("/del", del)
 	tl.Handle("/backup", backup)
 	tl.Handle("/load", load)
-	logging.Debug("open data view server :", port)
+	logger.Warn("open data view server :", port)
 	err := tl.HttpStart(fmt.Sprint(":", port))
-	logging.Error("err:", err.Error())
+	logger.Error("err:", err.Error())
 }
 
 func search(hc *HttpContext) {
@@ -37,9 +36,6 @@ func search(hc *HttpContext) {
 	_showLine := hc.PostParam("showLine")
 	transfer := hc.PostParam("transfer")
 	_pageNumber := hc.PostParam("pageNumber")
-	// logging.Debug("searchId:", searchId)
-	// logging.Debug("showLine:", _showLine)
-	// logging.Debug("pageNumber:", _pageNumber)
 	if _showLine == "" {
 		_showLine = "100"
 	}
@@ -65,8 +61,6 @@ func search(hc *HttpContext) {
 		max = showLine * (pageNumber + 1)
 	}
 	for i := showLine * pageNumber; i < max; i++ {
-		// value, _ := SimpleDB().GetString([]byte(keys[i]))
-		// logging.Debug("key", i+1, ":", keys[i], "===>", value)
 		s = fmt.Sprint(s, `{"k":"`, keys[i], `","v":"`, "", `"}`)
 		if i < max-1 {
 			s = fmt.Sprint(s, ",")

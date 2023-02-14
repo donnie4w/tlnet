@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/apache/thrift/lib/go/thrift"
-	"github.com/donnie4w/simplelog/logging"
 	. "github.com/donnie4w/tlnet/db"
 	"golang.org/x/net/websocket"
 )
@@ -183,7 +182,7 @@ func (this *tlnet) HttpStart(addr string) (err error) {
 	this._server.Addr = addr
 	err = this._server.ListenAndServe()
 	if err != nil {
-		logging.Error("tlnet start error:", err.Error())
+		logger.Error("tlnet start error:", err.Error())
 	}
 	return
 }
@@ -194,7 +193,7 @@ func (this *tlnet) HttpStartTLS(addr string, certFile, keyFile string) (err erro
 	this._server.Addr = addr
 	err = this._server.ListenAndServeTLS(certFile, keyFile)
 	if err != nil {
-		logging.Error("tlnet startTLS error:", err.Error())
+		logger.Error("tlnet startTLS error:", err.Error())
 	}
 	return
 }
@@ -227,9 +226,7 @@ type httpHandler struct {
 }
 
 // func _checkmethod(path string, m map[string]string) (methed string, ok bool) {
-// 	logging.Debug(path)
 // 	path = path[:_getLastLetterIndex(path, "/")]
-// 	logging.Debug("====>", path)
 // 	if methed, ok = m[path]; len(path) > 0 && !ok {
 // 		return _checkmethod(path[:len(path)-1], m)
 // 	}
@@ -237,10 +234,8 @@ type httpHandler struct {
 // }
 
 // func _getLastLetterIndex(s, _i string) (i int) {
-// 	logging.Debug("len:", len(s))
 // 	for i = len(s); i > 0; i-- {
 // 		if s[i-1:i] == _i {
-// 			logging.Debug("i:", i)
 // 			return
 // 		}
 // 	}
@@ -273,7 +268,7 @@ func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// static server
+	// static
 	if this._staticHandler != nil && this._stub._filter != nil && this._stub._filter.notFoundhandler != nil {
 		dir := this._stub._dir
 		if dir[len(dir)-1:] != "/" {
@@ -311,9 +306,11 @@ func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type wsHandler struct {
-	_origin         string
-	httpContextFunc func(hc *HttpContext)
-	_originFunc     func(origin *url.URL) bool
+	httpContextFunc  func(hc *HttpContext)
+	_Origin          string
+	_OriginFunc      func(origin *url.URL) bool
+	_MaxPayloadBytes int
+	_OnError         func(self *Websocket)
 }
 
 func (this *wsHandler) checkOrigin(config *websocket.Config, req *http.Request) (err error) {
@@ -321,7 +318,7 @@ func (this *wsHandler) checkOrigin(config *websocket.Config, req *http.Request) 
 	if err == nil && config.Origin == nil {
 		return fmt.Errorf("null origin")
 	}
-	if (this._origin != "" && this._origin != config.Origin.String()) || (this._originFunc != nil && !this._originFunc(config.Origin)) {
+	if (this._Origin != "" && this._Origin != config.Origin.String()) || (this._OriginFunc != nil && !this._OriginFunc(config.Origin)) {
 		return fmt.Errorf("error origin")
 	}
 	return err
@@ -336,6 +333,7 @@ func (this *wsHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 func (this *wsHandler) wsConnFunc(ws *websocket.Conn) {
 	defer ws.Close()
 	hc := newHttpContext(nil, ws.Request())
+	ws.MaxPayloadBytes, hc.WS._OnError = this._MaxPayloadBytes, this._OnError
 	hc.WS.Conn = ws
 	for hc.WS.IsError == nil {
 		var byt []byte
@@ -364,6 +362,6 @@ func processorHandler(w ResponseWriter, r *Request, processor thrift.TProcessor,
 	hc := newHttpContext(w, r)
 	_, err := processor.Process(context.WithValue(context.Background(), "HttpContext", hc), ioProtocol, ioProtocol)
 	if err != nil {
-		logging.Error("processorHandler Error:", err)
+		logger.Error("processorHandler Error:", err)
 	}
 }

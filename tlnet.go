@@ -7,7 +7,11 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+
+	"github.com/donnie4w/simplelog/logging"
 )
+
+var logger = logging.NewLogger()
 
 func (this *tlnet) Handle(pattern string, handlerFunc func(hc *HttpContext)) {
 	this.AddHandlerFunc(pattern, nil, func(w http.ResponseWriter, r *http.Request) {
@@ -65,11 +69,15 @@ func (this *tlnet) HandleWebSocket(pattern string, handlerFunc func(hc *HttpCont
 }
 
 func (this *tlnet) HandleWebSocketBindOrigin(pattern, origin string, handlerFunc func(hc *HttpContext)) {
-	this._wss = append(this._wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc, _origin: origin}))
+	this._wss = append(this._wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc, _Origin: origin}))
 }
 
 func (this *tlnet) HandleWebSocketBindOriginFunc(pattern string, handlerFunc func(hc *HttpContext), originFunc func(origin *url.URL) bool) {
-	this._wss = append(this._wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc, _originFunc: originFunc}))
+	this._wss = append(this._wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc, _OriginFunc: originFunc}))
+}
+
+func (this *tlnet) HandleWebSocketBindConfig(pattern string, handlerFunc func(hc *HttpContext), config *WebsocketConfig) {
+	this._wss = append(this._wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc, _OriginFunc: config.OriginFunc, _Origin: config.Origin, _MaxPayloadBytes: config.MaxPayloadBytes, _OnError: config.OnError}))
 }
 
 func (this *tlnet) HandleWithFilter(pattern string, _filter *Filter, handlerFunc func(hc *HttpContext)) {
@@ -96,6 +104,10 @@ func (this *tlnet) HandleStaticWithFilter(pattern, dir string, _filter *Filter, 
 	} else {
 		this.AddStaticHandler(pattern, dir, _filter, nil)
 	}
+}
+
+func SetLogOFF() {
+	logger.SetLevel(logging.OFF)
 }
 
 //数据返回客户端

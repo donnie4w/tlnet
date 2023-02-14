@@ -104,6 +104,7 @@ func _Test_DB(t *testing.T) {
 
 func Test_tlnet(t *testing.T) {
 	tlnet := NewTlnet()
+	tlnet.ReadTimeout(10 * time.Second)
 	tlnet.DBPath("tl.db")
 	tlnet.SetMaxBytesReader((1 << 20) * 50)
 	tlnet.HandleStaticWithFilter("/cccc/", "db", notFoundFilter(), nil)
@@ -114,6 +115,7 @@ func Test_tlnet(t *testing.T) {
 	tlnet.AddStaticHandler("/", "./", nil, nil)
 	tlnet.HandleWebSocket("/ws", websocketFunc)
 	tlnet.HandleWebSocketBindOrigin("/ws2", "http://tlnet/", websocketFunc)
+	tlnet.HandleWebSocketBindConfig("/ws3", websocketFunc, newWebsocketConfig())
 	OpenView(3434)
 	tlnet.HttpStart(":8082")
 }
@@ -204,6 +206,17 @@ func notify(hc *HttpContext) {
 
 var wsmap = make(map[int64]*HttpContext, 0)
 
+func newWebsocketConfig() *WebsocketConfig {
+	wc := new(WebsocketConfig)
+	wc.MaxPayloadBytes = 1 << 20 * 100
+	wc.OnError = func(ws *Websocket) {
+		logging.Error("err:", ws.IsError)
+		err := ws.Close()
+		logging.Error(err)
+	}
+	return wc
+}
+
 func websocketFunc(hc *HttpContext) {
 	_, ok := wsmap[hc.WS.Id]
 	if !ok {
@@ -211,15 +224,15 @@ func websocketFunc(hc *HttpContext) {
 	}
 	logging.Debug(hc.ReqInfo)
 	logging.Debug(hc.ReqInfo.RemoteAddr)
-	msg := string(hc.WS.Read())
-	logging.Debug("收到:", msg)
+	// msg := string(hc.WS.Read())
+	logging.Debug(len(hc.WS.Read()))
+	// logging.Debug("收到:", msg)
 	// hc.WS.Send([]byte("好了"))
 	// hc.WS.Send("你发送的是：" + string(hc.WS.Read()))
-
-	for k, v := range wsmap {
-		if k != hc.WS.Id {
-			v.WS.Send(fmt.Sprint("这是", hc.WS.Id, "发送的信息:", msg))
-		}
-	}
+	// for k, v := range wsmap {
+	// 	if k != hc.WS.Id {
+	// 		v.WS.Send(fmt.Sprint("这是", hc.WS.Id, "发送的信息:", msg))
+	// 	}
+	// }
 
 }

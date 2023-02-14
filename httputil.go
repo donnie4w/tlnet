@@ -2,14 +2,13 @@ package tlnet
 
 import (
 	"net/http"
+	"net/url"
 	"regexp"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"golang.org/x/net/websocket"
-
-	"github.com/donnie4w/simplelog/logging"
 )
 
 type Websocket struct {
@@ -18,7 +17,7 @@ type Websocket struct {
 	_wbody       interface{}
 	Conn         *websocket.Conn
 	IsError      error
-	OnError      func(self *Websocket)
+	_OnError     func(self *Websocket)
 	_mutex       *sync.Mutex
 	_doErrorFunc bool
 }
@@ -29,13 +28,12 @@ func NewWebsocket(_id int64) *Websocket {
 
 func (this *Websocket) Send(v interface{}) (err error) {
 	if this.IsError == nil {
-		err = websocket.Message.Send(this.Conn, v)
-		this.IsError = err
+		if err = websocket.Message.Send(this.Conn, v); err != nil {
+			this.IsError = err
+		}
 		this._onErrorChan()
-		return
-	} else {
-		return this.IsError
 	}
+	return this.IsError
 }
 
 func (this *Websocket) Read() []byte {
@@ -47,14 +45,21 @@ func (this *Websocket) Close() (err error) {
 }
 
 func (this *Websocket) _onErrorChan() {
-	if this.IsError != nil && this.OnError != nil && !this._doErrorFunc {
+	if this.IsError != nil && this._OnError != nil && !this._doErrorFunc {
 		this._mutex.Lock()
 		defer this._mutex.Unlock()
 		if !this._doErrorFunc {
 			this._doErrorFunc = true
-			this.OnError(this)
+			this._OnError(this)
 		}
 	}
+}
+
+type WebsocketConfig struct {
+	Origin          string
+	OriginFunc      func(origin *url.URL) bool
+	MaxPayloadBytes int
+	OnError         func(self *Websocket)
 }
 
 type HttpInfo struct {
@@ -107,7 +112,7 @@ func (this *HttpContext) MaxBytesReader(_max int64) {
 
 func myRecover() {
 	if err := recover(); err != nil {
-		logging.Error(err)
+		logger.Error(err)
 	}
 }
 
