@@ -49,7 +49,7 @@ func (this *Websocket) Close() (err error) {
 func (this *Websocket) _onErrorChan() {
 	if this.IsError != nil && this.OnError != nil && !this._doErrorFunc {
 		this._mutex.Lock()
-		this._mutex.Unlock()
+		defer this._mutex.Unlock()
 		if !this._doErrorFunc {
 			this._doErrorFunc = true
 			this.OnError(this)
