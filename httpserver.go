@@ -328,24 +328,25 @@ func (this *wsHandler) checkOrigin(config *websocket.Config, req *http.Request) 
 }
 
 // ServeHTTP implements the http.Handler interface for a WebSocket
-func (this wsHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (this *wsHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	s := websocket.Server{Handler: this.wsConnFunc, Handshake: this.checkOrigin}
 	s.ServeHTTP(w, req)
 }
 
-func (this wsHandler) wsConnFunc(ws *websocket.Conn) {
+func (this *wsHandler) wsConnFunc(ws *websocket.Conn) {
 	defer ws.Close()
 	hc := newHttpContext(nil, ws.Request())
 	hc.WS.Conn = ws
-	for hc.WS.OnError == nil {
+	for hc.WS.IsError == nil {
 		var byt []byte
 		if err := websocket.Message.Receive(ws, &byt); err != nil {
-			hc.WS.OnError = err
+			hc.WS.IsError = err
 			break
 		}
 		hc.WS._rbody = byt
 		this.httpContextFunc(hc)
 	}
+	hc.WS._onErrorChan()
 }
 
 func processorHandler(w ResponseWriter, r *Request, processor thrift.TProcessor, _ttype TTYPE) {

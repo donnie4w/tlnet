@@ -3,6 +3,7 @@ package tlnet
 import (
 	"net/http"
 	"regexp"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -12,20 +13,28 @@ import (
 )
 
 type Websocket struct {
-	Id      int64
-	_rbody  []byte
-	_wbody  interface{}
-	Conn    *websocket.Conn
-	OnError error
+	Id           int64
+	_rbody       []byte
+	_wbody       interface{}
+	Conn         *websocket.Conn
+	IsError      error
+	OnError      func(self *Websocket)
+	_mutex       *sync.Mutex
+	_doErrorFunc bool
+}
+
+func NewWebsocket(_id int64) *Websocket {
+	return &Websocket{Id: _id, _mutex: new(sync.Mutex), _doErrorFunc: false}
 }
 
 func (this *Websocket) Send(v interface{}) (err error) {
-	if this.OnError == nil {
+	if this.IsError == nil {
 		err = websocket.Message.Send(this.Conn, v)
-		this.OnError = err
+		this.IsError = err
+		this._onErrorChan()
 		return
 	} else {
-		return this.OnError
+		return this.IsError
 	}
 }
 
@@ -33,8 +42,19 @@ func (this *Websocket) Read() []byte {
 	return this._rbody
 }
 
-func (this *Websocket) Close() error {
+func (this *Websocket) Close() (err error) {
 	return this.Conn.Close()
+}
+
+func (this *Websocket) _onErrorChan() {
+	if this.IsError != nil && this.OnError != nil && !this._doErrorFunc {
+		this._mutex.Lock()
+		this._mutex.Unlock()
+		if !this._doErrorFunc {
+			this._doErrorFunc = true
+			this.OnError(this)
+		}
+	}
 }
 
 type HttpInfo struct {
@@ -61,7 +81,7 @@ func newHttpContext(w http.ResponseWriter, r *http.Request) *HttpContext {
 	hi := new(HttpInfo)
 	hi.Header, hi.Host, hi.Method, hi.Path, hi.RemoteAddr, hi.Uri, hi.UserAgent, hi.Referer = r.Header, r.Host, r.Method, r.URL.Path, r.RemoteAddr, r.RequestURI, r.UserAgent(), r.Referer()
 	atomic.AddInt64(&_seqId, 1)
-	return &HttpContext{w, r, hi, &Websocket{Id: time.Now().UnixNano() + _seqId}}
+	return &HttpContext{w, r, hi, NewWebsocket(time.Now().UnixNano() + _seqId)}
 }
 
 func (this *HttpContext) GetCookie(name string) (_r string, err error) {
