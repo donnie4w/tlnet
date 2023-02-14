@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	. "net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -173,11 +174,6 @@ func (this *tlnet) AddHandlerFunc(pattern string, f *Filter, handlerFunc func(Re
 
 //处理静态页面
 func (this *tlnet) AddStaticHandler(pattern string, dir string, f *Filter, handlerFunc func(ResponseWriter, *Request)) {
-	// if !strings.HasSuffix(pattern, "/") {
-	// 	pattern = fmt.Sprint(pattern, "/")
-	// }
-	// this._staticHandlers = append(this._staticHandlers, &stub{_pattern: pattern, _dir: dir, _filter: f, _handler: handlerFunc})
-
 	this._staticHandlers = append(this._staticHandlers, newStub(pattern, dir, f, handlerFunc, nil, 0))
 }
 
@@ -270,19 +266,7 @@ func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			root = r.RequestURI[:(a - b)]
 			method, ok = this._tlnet._methodpattern[root]
 		}
-		// else {
-		// 	var checkpattern string
-		// 	logging.Debug("path:", path)
-		// 	if path[0] == '/' {
-		// 		checkpattern = path
-		// 	} else {
-		// 		checkpattern = fmt.Sprint("/", path)
-		// 	}
 
-		// 	if method, ok = this._tlnet._methodpattern[checkpattern]; !ok {
-		// 		method, ok = _checkmethod(checkpattern[:len(checkpattern)-1], this._tlnet._methodpattern)
-		// 	}
-		// }
 		if ok && method != strings.ToUpper(r.Method) {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
@@ -327,20 +311,25 @@ func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type wsHandler struct {
+	_origin         string
 	httpContextFunc func(hc *HttpContext)
+	_originFunc     func(origin *url.URL) bool
 }
 
-func checkOrigin(config *websocket.Config, req *http.Request) (err error) {
+func (this *wsHandler) checkOrigin(config *websocket.Config, req *http.Request) (err error) {
 	config.Origin, err = websocket.Origin(config, req)
 	if err == nil && config.Origin == nil {
 		return fmt.Errorf("null origin")
+	}
+	if (this._origin != "" && this._origin != config.Origin.String()) || (this._originFunc != nil && !this._originFunc(config.Origin)) {
+		return fmt.Errorf("error origin")
 	}
 	return err
 }
 
 // ServeHTTP implements the http.Handler interface for a WebSocket
 func (this wsHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	s := websocket.Server{Handler: this.wsConnFunc, Handshake: checkOrigin}
+	s := websocket.Server{Handler: this.wsConnFunc, Handshake: this.checkOrigin}
 	s.ServeHTTP(w, req)
 }
 

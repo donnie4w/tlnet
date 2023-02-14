@@ -113,6 +113,7 @@ func Test_tlnet(t *testing.T) {
 	tlnet.POST("/notify", notify)
 	tlnet.AddStaticHandler("/", "./", nil, nil)
 	tlnet.HandleWebSocket("/ws", websocketFunc)
+	tlnet.HandleWebSocketBindOrigin("/ws2", "http://tlnet/", websocketFunc)
 	OpenView(3434)
 	tlnet.HttpStart(":8082")
 }

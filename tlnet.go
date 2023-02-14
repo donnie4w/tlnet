@@ -5,6 +5,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 )
 
@@ -61,6 +62,14 @@ func (this *tlnet) CONNECT(pattern string, handlerFunc func(hc *HttpContext)) {
 
 func (this *tlnet) HandleWebSocket(pattern string, handlerFunc func(hc *HttpContext)) {
 	this._wss = append(this._wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc}))
+}
+
+func (this *tlnet) HandleWebSocketBindOrigin(pattern, origin string, handlerFunc func(hc *HttpContext)) {
+	this._wss = append(this._wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc, _origin: origin}))
+}
+
+func (this *tlnet) HandleWebSocketBindOriginFunc(pattern string, handlerFunc func(hc *HttpContext), originFunc func(origin *url.URL) bool) {
+	this._wss = append(this._wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc, _originFunc: originFunc}))
 }
 
 func (this *tlnet) HandleWithFilter(pattern string, _filter *Filter, handlerFunc func(hc *HttpContext)) {
