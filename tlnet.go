@@ -162,7 +162,7 @@ func (this *HttpContext) Redirect(path string) {
 
 func (this *HttpContext) RedirectWithStatus(path string, status int) {
 	defer myRecover()
-	http.Redirect(this.w, this.r, path, http.StatusTemporaryRedirect)
+	http.Redirect(this.w, this.r, path, status)
 	return
 }
 
