@@ -5,8 +5,10 @@
 package db
 
 import (
+	"bytes"
 	"io"
 	"os"
+	"sync"
 
 	"github.com/donnie4w/simplelog/logging"
 
@@ -19,10 +21,13 @@ import (
 var dbMap map[string]*DB = make(map[string]*DB, 0)
 
 var db_simple *DB
+var mux = new(sync.Mutex)
 
 func SimpleDB() *DB {
 	return db_simple
 }
+
+var logger = logging.NewLogger()
 
 type DB struct {
 	db     *leveldb.DB
@@ -35,17 +40,21 @@ func UseSimpleDB(_dbname string) (*DB, error) {
 	return db_simple, err
 }
 
-func NewDB(_dbname string) (*DB, error) {
-	if db, ok := dbMap[_dbname]; ok {
-		return db, nil
+func NewDB(_dbname string) (db *DB, err error) {
+	mux.Lock()
+	defer mux.Unlock()
+	var ok bool
+	if db, ok = dbMap[_dbname]; ok {
+		return
 	}
-	db := &DB{dbname: _dbname}
-	err := db.openDB()
+	db = &DB{dbname: _dbname}
+	err = db.openDB()
 	if err != nil {
-		logging.Debug("init db error:", err.Error())
+		logger.Error("init db error:", err.Error())
+		return
 	}
 	dbMap[_dbname] = db
-	return db, err
+	return
 }
 
 ////////////////////////////////////////////
@@ -55,7 +64,7 @@ func (this *DB) openDB() (err error) {
 	}
 	this.db, err = leveldb.OpenFile(this.dbname, o)
 	if err != nil {
-		logging.Error("openDB err:", err.Error())
+		logger.Error("openDB err:", err.Error())
 	}
 	return
 }
@@ -191,9 +200,10 @@ func RecoverBackup(filename string) (bs []*BakStub) {
 	} else {
 		return
 	}
-	buf, err := io.ReadAll(f)
+	var buf bytes.Buffer
+	_, err := io.Copy(&buf, f)
 	if err == nil {
-		decoder(buf, &bs)
+		decoder(buf.Bytes(), &bs)
 	}
 	return
 }
@@ -237,6 +247,6 @@ func _TraverseSnap(snap *leveldb.Snapshot, prefix []byte) (bs []*BakStub) {
 
 func myRecover() {
 	if err := recover(); err != nil {
-		logging.Error(err)
+		logger.Error(err)
 	}
 }
