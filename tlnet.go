@@ -107,7 +107,7 @@ func (this *tlnet) HandleStaticWithFilter(pattern, dir string, _filter *Filter, 
 }
 
 func SetLogOFF() {
-	logger.SetLevel(logging.OFF)
+	logger.SetLevel(logging.LEVEL_OFF)
 }
 
 //数据返回客户端
