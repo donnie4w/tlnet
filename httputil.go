@@ -1,3 +1,5 @@
+// Copyright (c) , donnie <donnie4w@gmail.com>
+// All rights reserved.
 package tlnet
 
 import (

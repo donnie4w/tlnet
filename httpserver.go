@@ -1,3 +1,5 @@
+// Copyright (c) , donnie <donnie4w@gmail.com>
+// All rights reserved.
 package tlnet
 
 import (
@@ -137,17 +139,17 @@ func (this *tlnet) MaxHeaderBytes(_MaxHeaderBytes int) {
 	this._server.MaxHeaderBytes = _MaxHeaderBytes
 }
 
-//数据库文件路径
+// 数据库文件路径
 func (this *tlnet) DBPath(dbPath string) {
 	this._dbPath = dbPath
 }
 
-//设置请求body限制
+// 设置请求body限制
 func (this *tlnet) SetMaxBytesReader(maxBytes int64) {
 	this._maxBytes = maxBytes
 }
 
-//处理thrift协议请求
+// 处理thrift协议请求
 func (this *tlnet) AddProcessor(pattern string, processor thrift.TProcessor) {
 	this._addProcessor(pattern, processor, JSON)
 }
@@ -165,13 +167,13 @@ func (this *tlnet) _addProcessor(pattern string, processor thrift.TProcessor, tt
 	this._processors = append(this._processors, newStub(pattern, "", nil, nil, processor, ttype))
 }
 
-//处理动态请求
+// 处理动态请求
 func (this *tlnet) AddHandlerFunc(pattern string, f *Filter, handlerFunc func(ResponseWriter, *Request)) {
 	// this._handlers = append(this._handlers, &stub{_pattern: pattern, _filter: f, _handler: handlerFunc})
 	this._handlers = append(this._handlers, newStub(pattern, "", f, handlerFunc, nil, 0))
 }
 
-//处理静态页面
+// 处理静态页面
 func (this *tlnet) AddStaticHandler(pattern string, dir string, f *Filter, handlerFunc func(ResponseWriter, *Request)) {
 	this._staticHandlers = append(this._staticHandlers, newStub(pattern, dir, f, handlerFunc, nil, 0))
 }

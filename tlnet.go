@@ -1,3 +1,5 @@
+// Copyright (c) , donnie <donnie4w@gmail.com>
+// All rights reserved.
 package tlnet
 
 import (
@@ -110,8 +112,8 @@ func SetLogOFF() {
 	logger.SetLevel(logging.LEVEL_OFF)
 }
 
-//数据返回客户端
-//return the data to the client
+// 数据返回客户端
+// return the data to the client
 func (this *HttpContext) ResponseString(data string) (_r int, err error) {
 	return this.ResponseBytes(http.StatusOK, []byte(data))
 }
@@ -153,7 +155,7 @@ func (this *HttpContext) PostParams(key string) (_r []string) {
 	return this.r.Form[key]
 }
 
-//重定向
+// 重定向
 func (this *HttpContext) Redirect(path string) {
 	defer myRecover()
 	http.Redirect(this.w, this.r, path, http.StatusTemporaryRedirect)
