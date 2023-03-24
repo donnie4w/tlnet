@@ -41,7 +41,7 @@ func (this *Filter) AddPageNotFoundIntercept(handlerFunc func(hc *HttpContext) b
 	}
 }
 
-// 自定义拦截规则
+// 自定义拦截规则 pattern正则匹配
 func (this *Filter) AddIntercept(_pattern string, handlerFunc func(hc *HttpContext) bool) {
 	this.matchMap[_pattern] = func(w ResponseWriter, r *Request) bool {
 		return handlerFunc(newHttpContext(w, r))

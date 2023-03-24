@@ -1,0 +1,6 @@
+github.com/apache/thrift v0.18.0 h1:YXuoqgVIHYiAp1WhRw59wXe86HQflof8fh3llIjRzMY=
+github.com/apache/thrift v0.18.0/go.mod h1:rdQn/dCcDKEWjjylUeueum4vQEjG2v8v2PqriUnbr+I=
+github.com/donnie4w/simplelog v0.0.0-20230218035151-b4aa9b03e203 h1:hWy8UdslIbOexQq+gzHet1ncLeaajt5ArF847FI5FgU=
+github.com/donnie4w/simplelog v0.0.0-20230218035151-b4aa9b03e203/go.mod h1:UNoDOR7K08td8Lgvxb46ViOoFPcbFqt0Fi3bkC8fKx4=
+golang.org/x/net v0.7.0 h1:rJrUqqhjsgNp7KqAIc25s9pZnjU7TUcSY7HcVZjdn1g=
+golang.org/x/net v0.7.0/go.mod h1:2Tu9+aMcznHK/AK1HMvgo6xiTLG5rD5rZLDS+rp2Bjs=
