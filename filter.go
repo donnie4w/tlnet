@@ -21,7 +21,7 @@ type Filter struct {
 	matchMap        map[string]func(ResponseWriter, *Request) bool //正则匹配 bool为true时，执行func后，不再进行其他判断
 }
 
-//suffixs 拦截器后缀数组，handler返回true则 不再进行其他流程判断，直接返回
+// suffixs 后缀拦截，方法返回true则，则不执行Filter后的handlerFunc，直接返回
 func (this *Filter) AddSuffixIntercept(suffixs []string, handlerFunc func(hc *HttpContext) bool) {
 	for _, v := range suffixs {
 		if strings.Contains(v, ".") {
@@ -34,14 +34,14 @@ func (this *Filter) AddSuffixIntercept(suffixs []string, handlerFunc func(hc *Ht
 	}
 }
 
-//路径找不到拦截器 ，handler返回true则 不再进行其他流程判断，直接返回
+// url路径找不到 ，方法返回true则，则不执行Filter后的handlerFunc，直接返回
 func (this *Filter) AddPageNotFoundIntercept(handlerFunc func(hc *HttpContext) bool) {
 	this.notFoundhandler = func(w ResponseWriter, r *Request) bool {
 		return handlerFunc(newHttpContext(w, r))
 	}
 }
 
-//增加拦截规则
+// 自定义拦截规则
 func (this *Filter) AddIntercept(_pattern string, handlerFunc func(hc *HttpContext) bool) {
 	this.matchMap[_pattern] = func(w ResponseWriter, r *Request) bool {
 		return handlerFunc(newHttpContext(w, r))

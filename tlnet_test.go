@@ -11,103 +11,11 @@ import (
 	"time"
 
 	"github.com/donnie4w/simplelog/logging"
-	. "github.com/donnie4w/tlnet/db"
 )
-
-type TestObj struct {
-	Id   int64
-	Name string `idx`
-	Age_ int
-}
-
-func init() {
-	UseSimpleDB("tl.db")
-}
-
-func _Test_DB(t *testing.T) {
-	var err error
-	for i := 0; i < 10; i++ {
-		err = Insert(&TestObj{Name: "wuxiaodong", Age_: 10 + i})
-		SimpleDB().Put([]byte(fmt.Sprint("www", i)), []byte(fmt.Sprint("xxxx", i)))
-	}
-
-	var s string
-	// err, s = BuildIndex[TestObj]()
-	fmt.Println("————————————————————————————————————————————", err)
-	fmt.Println("————————————————————————————————————————————", s)
-
-	// err = Update(&TestObj{3, "wuxiaodong", 222})
-	// Delete(TestObj{Id: 3})
-	// Delete(&TestObj{Id: 3})
-	time.Sleep(3 * time.Second)
-	ts := Selects[TestObj](0, 10)
-	for i, v := range ts {
-		logging.Debug(i+1, "----", v)
-	}
-	logging.Debug("max idx==>", GetIdSeqValue[TestObj]())
-
-	fmt.Println("------------------------------------------------")
-	ts = SelectByIdxName[TestObj]("name", "wuxiaodong")
-	for i, v := range ts {
-		logging.Debug(i+1, "=====", v)
-	}
-	fmt.Println("------------------------------------------------")
-	ts = SelectByIdxNameLimit[TestObj]("age_", []string{"215", "216", "333"}, 2, 2)
-	for i, v := range ts {
-		logging.Debug(i+1, "=========>", v)
-	}
-	o := SelectOneByIdxName[TestObj]("name", "dongdong")
-	logging.Debug("o==>", o)
-	fmt.Println("")
-	fmt.Println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-	// IterDB()
-}
-
-// func Benchmark_Alloc(b *testing.B) {
-// 	var i int
-// 	for i = 0; i < b.N; i++ {
-// 		fmt.Sprintf("%d", i)
-// 		// Insert(&TestObj{Name_: "wuxiaodong", Age_: i})
-// 		ts := Selects[TestObj](0, 10)
-// 		for i, v := range ts {
-// 			logging.Debug(i+1, "----", v)
-// 		}
-// 		ts = SelectByIdxName[TestObj]("Age_", "3370")
-// 		for i, v := range ts {
-// 			logging.Debug(i+1, "=====", v)
-// 		}
-// 		ts = SelectByIdxNameLimit[TestObj]("age", []string{"215", "216", "333"}, 0, 2)
-// 		for i, v := range ts {
-// 			logging.Debug(i+1, "=========>", v)
-// 		}
-// 	}
-// 	logging.Debug("i===>", i)
-// }
-
-// func IterDB() {
-// 	keys, _ := SimpleDB().GetKeys()
-// 	for i, v := range keys {
-// 		logging.Debug("key", i+1, "==", v)
-// 		value, _ := SimpleDB().GetString([]byte(v))
-// 		logging.Debug(v, "==>", value)
-// 	}
-// }
-
-// func _Test_snap(t *testing.T) {
-// 	SimpleDB().Put([]byte("d"), []byte("3"))
-// 	logging.Debug(SimpleDB().GetKeys())
-// 	er := SimpleDB().BackupToDisk("snap.lb", []byte("d"))
-// 	logging.Debug(er)
-// 	logging.Debug(RecoverBackup("snap.lb"))
-// 	for _, v := range RecoverBackup("snap.lb") {
-// 		logging.Debug(string(v.Key), " == ", string(v.Value))
-// 	}
-// }
 
 func Test_tlnet(t *testing.T) {
 	tlnet := NewTlnet()
 	tlnet.ReadTimeout(10 * time.Second)
-	tlnet.DBPath("tl.db")
 	tlnet.SetMaxBytesReader((1 << 20) * 50)
 	tlnet.HandleStaticWithFilter("/cccc/", "db", notFoundFilter(), nil)
 	tlnet.AddHandlerFunc("/aaa", nil, aaa)
@@ -118,7 +26,6 @@ func Test_tlnet(t *testing.T) {
 	tlnet.HandleWebSocket("/ws", websocketFunc)
 	tlnet.HandleWebSocketBindOrigin("/ws2", "http://tlnet/", websocketFunc)
 	tlnet.HandleWebSocketBindConfig("/ws3", websocketFunc, newWebsocketConfig())
-	OpenView(3434)
 	tlnet.HttpStart(":8082")
 }
 
@@ -150,7 +57,6 @@ func staticHandleFunc(hc *HttpContext) {
 func notFoundFilter() *Filter {
 	f := NewFilter()
 	f.AddPageNotFoundIntercept(notFound)
-
 	return f
 }
 
@@ -167,7 +73,7 @@ func notFound(hc *HttpContext) bool {
 	return true
 }
 
-//后缀为.html的过滤器
+// 后缀为.html的过滤器
 func suffixFilter() *Filter {
 	f := NewFilter()
 	f.AddSuffixIntercept([]string{"html"}, suffixIntercept)

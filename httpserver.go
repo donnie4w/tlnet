@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/apache/thrift/lib/go/thrift"
-	. "github.com/donnie4w/tlnet/db"
 	"golang.org/x/net/websocket"
 )
 
@@ -69,7 +68,7 @@ func NewTlnet() *tlnet {
 }
 
 type tlnet struct {
-	_dbPath         string
+	// _dbPath         string
 	_maxBytes       int64
 	_processors     []*stub
 	_handlers       []*stub
@@ -140,9 +139,9 @@ func (this *tlnet) MaxHeaderBytes(_MaxHeaderBytes int) {
 }
 
 // 数据库文件路径
-func (this *tlnet) DBPath(dbPath string) {
-	this._dbPath = dbPath
-}
+// func (this *tlnet) DBPath(dbPath string) {
+// 	this._dbPath = dbPath
+// }
 
 // 设置请求body限制
 func (this *tlnet) SetMaxBytesReader(maxBytes int64) {
@@ -200,10 +199,21 @@ func (this *tlnet) HttpStartTLS(addr string, certFile, keyFile string) (err erro
 	return
 }
 
-func (this *tlnet) _Handle() {
-	if this._dbPath != "" {
-		UseSimpleDB(this._dbPath)
+/**close service**/
+func (this *tlnet) Close() (err error) {
+	if this._server != nil {
+		err = this._server.Close()
+		if err != nil {
+			logger.Error("tlnet start error:", err.Error())
+		}
 	}
+	return
+}
+
+func (this *tlnet) _Handle() {
+	// if this._dbPath != "" {
+	// 	UseSimpleDB(this._dbPath)
+	// }
 	for _, s := range this._processors {
 		this._serverMux.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: this._maxBytes, _stub: s, _tlnet: this}))
 	}

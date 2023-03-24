@@ -64,6 +64,7 @@ type WebsocketConfig struct {
 	OnError         func(self *Websocket)
 }
 
+/*http头信息*/
 type HttpInfo struct {
 	Path       string
 	Uri        string
