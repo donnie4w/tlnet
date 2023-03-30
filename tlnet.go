@@ -15,80 +15,80 @@ import (
 
 var logger = logging.NewLogger().SetFormat(logging.FORMAT_DATE | logging.FORMAT_TIME | logging.FORMAT_MICROSECNDS).SetLevel(logging.Error())
 
-func (this *tlnet) Handle(pattern string, handlerFunc func(hc *HttpContext)) {
+func (this *Tlnet) Handle(pattern string, handlerFunc func(hc *HttpContext)) {
 	this.AddHandlerFunc(pattern, nil, func(w http.ResponseWriter, r *http.Request) {
 		handlerFunc(newHttpContext(w, r))
 	})
 }
 
-func (this *tlnet) POST(pattern string, handlerFunc func(hc *HttpContext)) {
+func (this *Tlnet) POST(pattern string, handlerFunc func(hc *HttpContext)) {
 	this._methodpattern[pattern] = http.MethodPost
 	this.Handle(pattern, handlerFunc)
 }
 
-func (this *tlnet) PATCH(pattern string, handlerFunc func(hc *HttpContext)) {
+func (this *Tlnet) PATCH(pattern string, handlerFunc func(hc *HttpContext)) {
 	this._methodpattern[pattern] = http.MethodPatch
 	this.Handle(pattern, handlerFunc)
 }
 
-func (this *tlnet) PUT(pattern string, handlerFunc func(hc *HttpContext)) {
+func (this *Tlnet) PUT(pattern string, handlerFunc func(hc *HttpContext)) {
 	this._methodpattern[pattern] = http.MethodPut
 	this.Handle(pattern, handlerFunc)
 }
 
-func (this *tlnet) DELETE(pattern string, handlerFunc func(hc *HttpContext)) {
+func (this *Tlnet) DELETE(pattern string, handlerFunc func(hc *HttpContext)) {
 	this._methodpattern[pattern] = http.MethodDelete
 	this.Handle(pattern, handlerFunc)
 }
 
-func (this *tlnet) GET(pattern string, handlerFunc func(hc *HttpContext)) {
+func (this *Tlnet) GET(pattern string, handlerFunc func(hc *HttpContext)) {
 	this._methodpattern[pattern] = http.MethodGet
 	this.Handle(pattern, handlerFunc)
 }
 
-func (this *tlnet) OPTIONS(pattern string, handlerFunc func(hc *HttpContext)) {
+func (this *Tlnet) OPTIONS(pattern string, handlerFunc func(hc *HttpContext)) {
 	this._methodpattern[pattern] = http.MethodOptions
 	this.Handle(pattern, handlerFunc)
 }
 
-func (this *tlnet) HEAD(pattern string, handlerFunc func(hc *HttpContext)) {
+func (this *Tlnet) HEAD(pattern string, handlerFunc func(hc *HttpContext)) {
 	this._methodpattern[pattern] = http.MethodHead
 	this.Handle(pattern, handlerFunc)
 }
 
-func (this *tlnet) TRACE(pattern string, handlerFunc func(hc *HttpContext)) {
+func (this *Tlnet) TRACE(pattern string, handlerFunc func(hc *HttpContext)) {
 	this._methodpattern[pattern] = http.MethodTrace
 	this.Handle(pattern, handlerFunc)
 }
 
-func (this *tlnet) CONNECT(pattern string, handlerFunc func(hc *HttpContext)) {
+func (this *Tlnet) CONNECT(pattern string, handlerFunc func(hc *HttpContext)) {
 	this._methodpattern[pattern] = http.MethodConnect
 	this.Handle(pattern, handlerFunc)
 }
 
-func (this *tlnet) HandleWebSocket(pattern string, handlerFunc func(hc *HttpContext)) {
+func (this *Tlnet) HandleWebSocket(pattern string, handlerFunc func(hc *HttpContext)) {
 	this._wss = append(this._wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc}))
 }
 
-func (this *tlnet) HandleWebSocketBindOrigin(pattern, origin string, handlerFunc func(hc *HttpContext)) {
+func (this *Tlnet) HandleWebSocketBindOrigin(pattern, origin string, handlerFunc func(hc *HttpContext)) {
 	this._wss = append(this._wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc, _Origin: origin}))
 }
 
-func (this *tlnet) HandleWebSocketBindOriginFunc(pattern string, handlerFunc func(hc *HttpContext), originFunc func(origin *url.URL) bool) {
+func (this *Tlnet) HandleWebSocketBindOriginFunc(pattern string, handlerFunc func(hc *HttpContext), originFunc func(origin *url.URL) bool) {
 	this._wss = append(this._wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc, _OriginFunc: originFunc}))
 }
 
-func (this *tlnet) HandleWebSocketBindConfig(pattern string, handlerFunc func(hc *HttpContext), config *WebsocketConfig) {
+func (this *Tlnet) HandleWebSocketBindConfig(pattern string, handlerFunc func(hc *HttpContext), config *WebsocketConfig) {
 	this._wss = append(this._wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc, _OriginFunc: config.OriginFunc, _Origin: config.Origin, _MaxPayloadBytes: config.MaxPayloadBytes, _OnError: config.OnError}))
 }
 
-func (this *tlnet) HandleWithFilter(pattern string, _filter *Filter, handlerFunc func(hc *HttpContext)) {
+func (this *Tlnet) HandleWithFilter(pattern string, _filter *Filter, handlerFunc func(hc *HttpContext)) {
 	this.AddHandlerFunc(pattern, _filter, func(w http.ResponseWriter, r *http.Request) {
 		handlerFunc(newHttpContext(w, r))
 	})
 }
 
-func (this *tlnet) HandleStatic(pattern, dir string, handlerFunc func(hc *HttpContext)) {
+func (this *Tlnet) HandleStatic(pattern, dir string, handlerFunc func(hc *HttpContext)) {
 	if handlerFunc != nil {
 		this.AddStaticHandler(pattern, dir, nil, func(w http.ResponseWriter, r *http.Request) {
 			handlerFunc(newHttpContext(w, r))
@@ -98,7 +98,7 @@ func (this *tlnet) HandleStatic(pattern, dir string, handlerFunc func(hc *HttpCo
 	}
 }
 
-func (this *tlnet) HandleStaticWithFilter(pattern, dir string, _filter *Filter, handlerFunc func(hc *HttpContext)) {
+func (this *Tlnet) HandleStaticWithFilter(pattern, dir string, _filter *Filter, handlerFunc func(hc *HttpContext)) {
 	if handlerFunc != nil {
 		this.AddStaticHandler(pattern, dir, _filter, func(w http.ResponseWriter, r *http.Request) {
 			handlerFunc(newHttpContext(w, r))
