@@ -13,7 +13,7 @@ import (
 	"github.com/donnie4w/simplelog/logging"
 )
 
-var logger = logging.NewLogger().SetFormat(logging.FORMAT_DATE | logging.FORMAT_TIME | logging.FORMAT_MICROSECNDS).SetLevel(logging.Error())
+var logger = logging.NewLogger().SetFormat(logging.FORMAT_DATE | logging.FORMAT_TIME | logging.FORMAT_MICROSECNDS).SetLevel(logging.LEVEL_ERROR)
 
 func (this *Tlnet) Handle(pattern string, handlerFunc func(hc *HttpContext)) {
 	this.AddHandlerFunc(pattern, nil, func(w http.ResponseWriter, r *http.Request) {
