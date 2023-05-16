@@ -96,16 +96,16 @@ func newHttpContext(w http.ResponseWriter, r *http.Request) *HttpContext {
 }
 
 func wsId(_seq int64) (_r int64) {
-	_r = int64(CRC32(append(Int64ToBytes(int64(os.Getpid())), Int64ToBytes(time.Now().UnixNano())...)))
+	_r = int64(_crc32(append(_int64ToBytes(int64(os.Getpid())), _int64ToBytes(time.Now().UnixNano())...)))
 	_r = _r<<31 | _seq
 	return
 }
 
-func CRC32(bs []byte) uint32 {
+func _crc32(bs []byte) uint32 {
 	return crc32.ChecksumIEEE(bs)
 }
 
-func Int64ToBytes(n int64) []byte {
+func _int64ToBytes(n int64) []byte {
 	bytesBuffer := bytes.NewBuffer([]byte{})
 	binary.Write(bytesBuffer, binary.BigEndian, n)
 	return bytesBuffer.Bytes()
