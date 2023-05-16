@@ -210,9 +210,6 @@ func (this *Tlnet) Close() (err error) {
 }
 
 func (this *Tlnet) _Handle() {
-	// if this._dbPath != "" {
-	// 	UseSimpleDB(this._dbPath)
-	// }
 	for _, s := range this._processors {
 		this._serverMux.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: this._maxBytes, _stub: s, _tlnet: this}))
 	}
@@ -279,7 +276,7 @@ func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// static
 	if this._staticHandler != nil && this._stub._filter != nil && this._stub._filter.notFoundhandler != nil {
 		dir := this._stub._dir
-		if dir[len(dir)-1:] != "/" {
+		if dir != "" && dir[len(dir)-1:] != "/" {
 			dir = fmt.Sprint(dir, "/")
 		}
 		if _, err := os.Stat(dir + path); os.IsNotExist(err) {
