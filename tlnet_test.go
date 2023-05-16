@@ -17,7 +17,8 @@ func Test_tlnet(t *testing.T) {
 	tlnet := NewTlnet()
 	tlnet.ReadTimeout(10 * time.Second)
 	tlnet.SetMaxBytesReader((1 << 20) * 50)
-	tlnet.HandleStaticWithFilter("/cccc/", "db", notFoundFilter(), nil)
+	tlnet.HandleStaticWithFilter("/cccc/", "test", notFoundFilter(), nil)
+	tlnet.HandleWithFilter("/3/a", interceptFilter("[a-z]"), func(hc *HttpContext) { hc.ResponseString("hello tlnet,  filter test") })
 	tlnet.AddHandlerFunc("/aaa", nil, aaa)
 	tlnet.AddHandlerFunc("/bbb", notFoundFilter(), aaa)
 	tlnet.AddProcessor("/ppp", nil)
@@ -71,6 +72,16 @@ func notFound(hc *HttpContext) bool {
 	logging.Debug(hc.ReqInfo.Header)
 	hc.ResponseString("not found")
 	return true
+}
+
+// 自定义正则拦截
+func interceptFilter(pattern string) (f *Filter) {
+	f = NewFilter()
+	f.AddIntercept(pattern, func(hc *HttpContext) bool {
+		hc.ResponseString(hc.ReqInfo.Uri + " is matched[" + pattern + "]")
+		return true
+	})
+	return
 }
 
 // 后缀为.html的过滤器

@@ -83,9 +83,13 @@ func (this *Tlnet) HandleWebSocketBindConfig(pattern string, handlerFunc func(hc
 }
 
 func (this *Tlnet) HandleWithFilter(pattern string, _filter *Filter, handlerFunc func(hc *HttpContext)) {
-	this.AddHandlerFunc(pattern, _filter, func(w http.ResponseWriter, r *http.Request) {
-		handlerFunc(newHttpContext(w, r))
-	})
+	if handlerFunc != nil {
+		this.AddHandlerFunc(pattern, _filter, func(w http.ResponseWriter, r *http.Request) {
+			handlerFunc(newHttpContext(w, r))
+		})
+	} else {
+		this.AddHandlerFunc(pattern, _filter, nil)
+	}
 }
 
 func (this *Tlnet) HandleStatic(pattern, dir string, handlerFunc func(hc *HttpContext)) {

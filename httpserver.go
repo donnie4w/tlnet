@@ -255,21 +255,18 @@ type httpHandler struct {
 
 func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	path := r.URL.Path
+	path, uri, url_uri := r.URL.Path, r.RequestURI, r.URL.RequestURI()
 	if this._maxBytes > 0 {
 		r.Body = http.MaxBytesReader(w, r.Body, this._maxBytes)
 	}
 	if len(this._tlnet._methodpattern) > 0 {
-		uri := r.RequestURI
-		url_uri := r.URL.RequestURI()
 		if url_uri[0] == '/' {
 			url_uri = url_uri[1:]
 		}
-		var root string
 		var method string
 		var ok bool
 		if a, b := len(uri), len(url_uri); a != b {
-			root = r.RequestURI[:(a - b)]
+			root := r.RequestURI[:(a - b)]
 			method, ok = this._tlnet._methodpattern[root]
 		}
 
@@ -291,14 +288,20 @@ func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	var filterPath string
+	if i := strings.LastIndex(uri, "?"); i > 0 {
+		filterPath = uri[:i]
+	} else {
+		filterPath = uri
+	}
 	if this._stub._filter != nil {
 		if len(this._stub._filter.suffixMap) > 0 {
-			if this._stub._filter._processSuffix(path, w, r) {
+			if this._stub._filter._processSuffix(filterPath, w, r) {
 				return
 			}
 		}
 		if len(this._stub._filter.matchMap) > 0 {
-			if this._stub._filter._processGlobal(path, w, r) {
+			if this._stub._filter._processGlobal(filterPath, w, r) {
 				return
 			}
 		}

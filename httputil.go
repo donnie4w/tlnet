@@ -3,8 +3,12 @@
 package tlnet
 
 import (
+	"bytes"
+	"encoding/binary"
+	"hash/crc32"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"sync"
 	"sync/atomic"
@@ -88,8 +92,23 @@ var _seqId int64
 func newHttpContext(w http.ResponseWriter, r *http.Request) *HttpContext {
 	hi := new(HttpInfo)
 	hi.Header, hi.Host, hi.Method, hi.Path, hi.RemoteAddr, hi.Uri, hi.UserAgent, hi.Referer = r.Header, r.Host, r.Method, r.URL.Path, r.RemoteAddr, r.RequestURI, r.UserAgent(), r.Referer()
-	atomic.AddInt64(&_seqId, 1)
-	return &HttpContext{w, r, hi, NewWebsocket(time.Now().UnixNano() + _seqId)}
+	return &HttpContext{w, r, hi, NewWebsocket(wsId(atomic.AddInt64(&_seqId, 1)))}
+}
+
+func wsId(_seq int64) (_r int64) {
+	_r = int64(CRC32(append(Int64ToBytes(int64(os.Getpid())), Int64ToBytes(time.Now().UnixNano())...)))
+	_r = _r<<31 | _seq
+	return
+}
+
+func CRC32(bs []byte) uint32 {
+	return crc32.ChecksumIEEE(bs)
+}
+
+func Int64ToBytes(n int64) []byte {
+	bytesBuffer := bytes.NewBuffer([]byte{})
+	binary.Write(bytesBuffer, binary.BigEndian, n)
+	return bytesBuffer.Bytes()
 }
 
 func (this *HttpContext) GetCookie(name string) (_r string, err error) {
