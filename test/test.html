@@ -1,0 +1,60 @@
+<html>
+
+<head>
+    <title>tldb</title>
+</head>
+
+<body>
+    <h3>tlnet测试</h3>
+    <hr>
+    <h4>tlnet Handle byte</h4>
+    <form id="" action="/" method="get"><input type="submit" value="submit" /> </form>
+    <hr>
+    <h4>tlnet Handle string</h4>
+    <form id="" action="/2" method="get">
+        <input name="name" value="testValue" />
+        <input type="submit" value="submit" />
+    </form>
+    <hr>
+    <h4>filter test：正则[a-z]： /3/1不拦截</h4>
+    <form id="" action="/3/1" method="post">
+        <input type="submit" value="submit" />
+    </form>
+    <h4>filter test,正则[a-z]$： /3/a 被拦截</h4>
+    <form id="" action="/3/a" method="post">
+        <input type="submit" value="submit" />
+    </form>
+    <hr>
+    <h4>post test</h4>
+    <form id="" action="/post" method="post">
+        <input name="name" value="postpostpostpost" />
+        <input type="submit" value="submit" />
+    </form>
+    <hr>
+    <h4>get test</h4>
+    <form id="" action="/get" method="get">
+        <input name="name" value="getgetgetget" />
+        <input type="submit" value="submit" />
+    </form>
+    <hr>
+    <h4>static test:访问静态文件 /html/ </h4>
+    <form id="" action="/" method="get">
+        <input type="submit" value="submit" />
+    </form>
+    <hr>
+    <h4>static file filter test:拦截go文件 /html/web_test.go </h4>
+    <form id="" action="/html/web_test.go" method="get">
+        <input type="submit" value="submit" />
+    </form>
+    <h4>static file filter test:不拦截图片文件 /html/nn.jpg</h4>
+    <form id="" action="/html/nn.jpg" method="get">
+        <input type="submit" value="submit" />
+    </form>
+    <hr>
+    <h4>重定向到 baidu.com</h4>
+    <form id="" action="/baidu" method="get">
+        <input type="submit" value="submit" />
+    </form>
+    <hr>
+
+</html>
