@@ -97,7 +97,7 @@ func newHttpContext(w http.ResponseWriter, r *http.Request) *HttpContext {
 
 func wsId(_seq int64) (_r int64) {
 	_r = int64(_crc32(append(_int64ToBytes(int64(os.Getpid())), _int64ToBytes(time.Now().UnixNano())...)))
-	_r = _r<<31 | _seq
+	_r = _r<<31 | int64(_seq&0x0000ffff)
 	return
 }
 
