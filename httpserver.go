@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net"
 	"net/http"
 	. "net/http"
 	"net/url"
@@ -59,9 +60,9 @@ func NewTlnet() *Tlnet {
 	t._processors = make([]*stub, 0)
 	t._staticHandlers = make([]*stub, 0)
 	t._handlers = make([]*stub, 0)
-	t._server = new(http.Server)
+	t.Server = new(http.Server)
 	t._serverMux = http.NewServeMux()
-	t._server.Handler = t._serverMux
+	t.Server.Handler = t._serverMux
 	t._wss = make([]*wsStub, 0)
 	t._methodpattern = make(map[string]string, 0)
 	return t
@@ -72,7 +73,7 @@ type Tlnet struct {
 	_processors     []*stub
 	_handlers       []*stub
 	_staticHandlers []*stub
-	_server         *http.Server
+	Server          *http.Server
 	_serverMux      *http.ServeMux
 	_wss            []*wsStub
 	_methodpattern  map[string]string
@@ -86,7 +87,7 @@ type Tlnet struct {
 // SetSessionTicketKeys, use Server.Serve with a TLS Listener
 // instead.
 func (this *Tlnet) TLSConfig(_TLSConfig *tls.Config) {
-	this._server.TLSConfig = _TLSConfig
+	this.Server.TLSConfig = _TLSConfig
 }
 
 // ReadTimeout is the maximum duration for reading the entire
@@ -98,7 +99,7 @@ func (this *Tlnet) TLSConfig(_TLSConfig *tls.Config) {
 // upload rate, most users will prefer to use
 // ReadHeaderTimeout. It is valid to use them both.
 func (this *Tlnet) ReadTimeout(_ReadTimeout time.Duration) {
-	this._server.ReadTimeout = _ReadTimeout
+	this.Server.ReadTimeout = _ReadTimeout
 }
 
 // ReadHeaderTimeout is the amount of time allowed to read
@@ -108,7 +109,7 @@ func (this *Tlnet) ReadTimeout(_ReadTimeout time.Duration) {
 // is zero, the value of ReadTimeout is used. If both are
 // zero, there is no timeout.
 func (this *Tlnet) ReadHeaderTimeout(_ReadHeaderTimeout time.Duration) {
-	this._server.ReadHeaderTimeout = _ReadHeaderTimeout
+	this.Server.ReadHeaderTimeout = _ReadHeaderTimeout
 }
 
 // WriteTimeout is the maximum duration before timing out
@@ -117,7 +118,7 @@ func (this *Tlnet) ReadHeaderTimeout(_ReadHeaderTimeout time.Duration) {
 // let Handlers make decisions on a per-request basis.
 // A zero or negative value means there will be no timeout.
 func (this *Tlnet) WriteTimeout(_WriteTimeout time.Duration) {
-	this._server.WriteTimeout = _WriteTimeout
+	this.Server.WriteTimeout = _WriteTimeout
 }
 
 // IdleTimeout is the maximum amount of time to wait for the
@@ -125,7 +126,7 @@ func (this *Tlnet) WriteTimeout(_WriteTimeout time.Duration) {
 // is zero, the value of ReadTimeout is used. If both are
 // zero, there is no timeout.
 func (this *Tlnet) IdleTimeout(_IdleTimeout time.Duration) {
-	this._server.IdleTimeout = _IdleTimeout
+	this.Server.IdleTimeout = _IdleTimeout
 }
 
 // MaxHeaderBytes controls the maximum number of bytes the
@@ -134,7 +135,7 @@ func (this *Tlnet) IdleTimeout(_IdleTimeout time.Duration) {
 // size of the request body.
 // If zero, DefaultMaxHeaderBytes is used.
 func (this *Tlnet) MaxHeaderBytes(_MaxHeaderBytes int) {
-	this._server.MaxHeaderBytes = _MaxHeaderBytes
+	this.Server.MaxHeaderBytes = _MaxHeaderBytes
 }
 
 // 数据库文件路径
@@ -179,8 +180,8 @@ func (this *Tlnet) AddStaticHandler(pattern string, dir string, f *Filter, handl
 /**http**/
 func (this *Tlnet) HttpStart(addr string) (err error) {
 	this._Handle()
-	this._server.Addr = addr
-	err = this._server.ListenAndServe()
+	this.Server.Addr = addr
+	err = this.Server.ListenAndServe()
 	if err != nil {
 		logger.Error("tlnet start error:", err.Error())
 	}
@@ -190,18 +191,38 @@ func (this *Tlnet) HttpStart(addr string) (err error) {
 /**http tls**/
 func (this *Tlnet) HttpStartTLS(addr string, certFile, keyFile string) (err error) {
 	this._Handle()
-	this._server.Addr = addr
-	err = this._server.ListenAndServeTLS(certFile, keyFile)
+	this.Server.Addr = addr
+	err = this.Server.ListenAndServeTLS(certFile, keyFile)
 	if err != nil {
 		logger.Error("tlnet startTLS error:", err.Error())
 	}
 	return
 }
 
+/**http tls**/
+func (this *Tlnet) HttpStartTlsBytes(addr string, certBys, keyBys []byte) (err error) {
+	this._Handle()
+	this.Server.Addr = addr
+	cfg := &tls.Config{}
+	var cert tls.Certificate
+	if cert, err = tls.X509KeyPair(certBys, keyBys); err == nil {
+		cfg.NextProtos = append(cfg.NextProtos, "http/1.1")
+		cfg.Certificates = append(cfg.Certificates, cert)
+		this.TLSConfig(cfg)
+		var ln net.Listener
+		if ln, err = net.Listen("tcp", addr); err == nil {
+			defer ln.Close()
+			tlsListener := tls.NewListener(ln, cfg)
+			err = this.Server.Serve(tlsListener)
+		}
+	}
+	return
+}
+
 /**close service**/
 func (this *Tlnet) Close() (err error) {
-	if this._server != nil {
-		err = this._server.Close()
+	if this.Server != nil {
+		err = this.Server.Close()
 		if err != nil {
 			logger.Error("tlnet start error:", err.Error())
 		}
