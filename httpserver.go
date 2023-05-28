@@ -313,12 +313,12 @@ func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		filterPath = uri
 	}
 	if this._stub._filter != nil {
-		if len(this._stub._filter.suffixMap) > 0 {
+		if this._stub._filter.suffixMap.Len() > 0 {
 			if this._stub._filter._processSuffix(filterPath, w, r) {
 				return
 			}
 		}
-		if len(this._stub._filter.matchMap) > 0 {
+		if this._stub._filter.matchMap.Len() > 0 {
 			if this._stub._filter._processGlobal(filterPath, w, r) {
 				return
 			}

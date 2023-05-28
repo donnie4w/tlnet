@@ -145,3 +145,46 @@ func matchString(pattern string, s string) bool {
 	}
 	return b
 }
+
+type Map[K any, V any] struct {
+	m   sync.Map
+	len int64
+}
+
+func newMap[K any, V any]() *Map[K, V] {
+	return &Map[K, V]{m: sync.Map{}}
+}
+
+func (this *Map[K, V]) Put(key K, value V) {
+	if _, ok := this.m.Swap(key, value); !ok {
+		atomic.AddInt64(&this.len, 1)
+	}
+}
+
+func (this *Map[K, V]) Get(key K) (t V, ok bool) {
+	if v, ok := this.m.Load(key); ok {
+		return v.(V), ok
+	}
+	return t, false
+}
+
+func (this *Map[K, V]) Has(key K) (ok bool) {
+	_, ok = this.m.Load(key)
+	return
+}
+
+func (this *Map[K, V]) Del(key K) {
+	if _, ok := this.m.LoadAndDelete(key); ok {
+		atomic.AddInt64(&this.len, -1)
+	}
+}
+
+func (this *Map[K, V]) Range(f func(k K, v V) bool) {
+	this.m.Range(func(k, v any) bool {
+		return f(k.(K), v.(V))
+	})
+}
+
+func (this *Map[K, V]) Len() int64 {
+	return this.len
+}
