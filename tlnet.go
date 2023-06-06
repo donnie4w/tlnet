@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/donnie4w/simplelog/logging"
 )
@@ -142,6 +143,11 @@ func (this *HttpContext) GetParam(key string) (_r string) {
 	return
 }
 
+// TrimSpace GetParam
+func (this *HttpContext) GetParamTrimSpace(key string) (_r string) {
+	return strings.TrimSpace(this.GetParam(key))
+}
+
 // PostParam returns the first value for the named component of the query.
 // POST and PUT body parameters take precedence over URL query string values.
 // If key is not present, PostParam returns the empty string.
@@ -150,6 +156,11 @@ func (this *HttpContext) PostParam(key string) (_r string) {
 	defer myRecover()
 	_r = this.r.FormValue(key)
 	return
+}
+
+// TrimSpace PostParam
+func (this *HttpContext) PostParamTrimSpace(key string) (_r string) {
+	return strings.TrimSpace(this.PostParam(key))
 }
 
 /*multiple values of the same key*/
