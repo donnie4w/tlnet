@@ -242,7 +242,9 @@ func (this *Tlnet) _Handle() {
 	}
 	if len(this._wss) > 0 {
 		for _, s := range this._wss {
-			this._serverMux.Handle(s._pattern, s._handler)
+			if s._handler != nil {
+				this._serverMux.Handle(s._pattern, s._handler)
+			}
 		}
 	}
 }
@@ -364,6 +366,7 @@ func (this *wsHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func (this *wsHandler) wsConnFunc(ws *websocket.Conn) {
+	defer myRecover()
 	defer ws.Close()
 	hc := newHttpContext(nil, ws.Request())
 	ws.MaxPayloadBytes, hc.WS._OnError = this._MaxPayloadBytes, this._OnError
@@ -377,7 +380,9 @@ func (this *wsHandler) wsConnFunc(ws *websocket.Conn) {
 			break
 		}
 		hc.WS._rbody = byt
-		this.httpContextFunc(hc)
+		if this.httpContextFunc != nil {
+			this.httpContextFunc(hc)
+		}
 	}
 }
 
