@@ -24,7 +24,7 @@ type Websocket struct {
 	Conn         *websocket.Conn
 	IsError      error
 	_OnError     func(self *Websocket)
-	_OnOpen      func(self *Websocket)
+	_OnOpen      func(hc *HttpContext)
 	_mutex       *sync.Mutex
 	_doErrorFunc bool
 }

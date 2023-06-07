@@ -343,7 +343,7 @@ type wsHandler struct {
 	_OriginFunc      func(origin *url.URL) bool
 	_MaxPayloadBytes int
 	_OnError         func(self *Websocket)
-	_OnOpen          func(self *Websocket)
+	_OnOpen          func(hc *HttpContext)
 }
 
 func (this *wsHandler) checkOrigin(config *websocket.Config, req *http.Request) (err error) {
@@ -368,7 +368,7 @@ func (this *wsHandler) wsConnFunc(ws *websocket.Conn) {
 	hc := newHttpContext(nil, ws.Request())
 	ws.MaxPayloadBytes, hc.WS._OnError = this._MaxPayloadBytes, this._OnError
 	hc.WS.Conn = ws
-	go this._OnOpen(hc.WS)
+	go this._OnOpen(hc)
 	defer hc.WS._onErrorChan()
 	for hc.WS.IsError == nil {
 		var byt []byte
