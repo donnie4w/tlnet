@@ -24,6 +24,7 @@ type Websocket struct {
 	Conn         *websocket.Conn
 	IsError      error
 	_OnError     func(self *Websocket)
+	_OnOpen      func(self *Websocket)
 	_mutex       *sync.Mutex
 	_doErrorFunc bool
 }
@@ -33,6 +34,7 @@ func NewWebsocket(_id int64) *Websocket {
 }
 
 func (this *Websocket) Send(v interface{}) (err error) {
+	defer myRecover()
 	if this.IsError == nil {
 		if err = websocket.Message.Send(this.Conn, v); err != nil {
 			this.IsError = err
@@ -51,6 +53,7 @@ func (this *Websocket) Close() (err error) {
 }
 
 func (this *Websocket) _onErrorChan() {
+	defer myRecover()
 	if this.IsError != nil && this._OnError != nil && !this._doErrorFunc {
 		this._mutex.Lock()
 		defer this._mutex.Unlock()
@@ -66,6 +69,7 @@ type WebsocketConfig struct {
 	OriginFunc      func(origin *url.URL) bool
 	MaxPayloadBytes int
 	OnError         func(self *Websocket)
+	OnOpen          func(self *Websocket)
 }
 
 /*http头信息*/
