@@ -69,7 +69,7 @@ type WebsocketConfig struct {
 	OriginFunc      func(origin *url.URL) bool
 	MaxPayloadBytes int
 	OnError         func(self *Websocket)
-	OnOpen          func(self *Websocket)
+	OnOpen          func(hc *HttpContext)
 }
 
 /*http头信息*/
