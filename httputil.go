@@ -22,7 +22,7 @@ type Websocket struct {
 	_rbody       []byte
 	_wbody       interface{}
 	Conn         *websocket.Conn
-	IsError      error
+	Error        error
 	_OnError     func(self *Websocket)
 	_OnOpen      func(hc *HttpContext)
 	_mutex       *sync.Mutex
@@ -35,13 +35,13 @@ func NewWebsocket(_id int64) *Websocket {
 
 func (this *Websocket) Send(v interface{}) (err error) {
 	defer myRecover()
-	if this.IsError == nil {
+	if this.Error == nil {
 		if err = websocket.Message.Send(this.Conn, v); err != nil {
-			this.IsError = err
+			this.Error = err
 		}
 		this._onErrorChan()
 	}
-	return this.IsError
+	return this.Error
 }
 
 func (this *Websocket) Read() []byte {
@@ -54,7 +54,7 @@ func (this *Websocket) Close() (err error) {
 
 func (this *Websocket) _onErrorChan() {
 	defer myRecover()
-	if this.IsError != nil && this._OnError != nil && !this._doErrorFunc {
+	if this.Error != nil && this._OnError != nil && !this._doErrorFunc {
 		this._mutex.Lock()
 		defer this._mutex.Unlock()
 		if !this._doErrorFunc {
