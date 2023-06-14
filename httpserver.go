@@ -371,7 +371,9 @@ func (this *wsHandler) wsConnFunc(ws *websocket.Conn) {
 	hc := newHttpContext(nil, ws.Request())
 	ws.MaxPayloadBytes, hc.WS._OnError = this._MaxPayloadBytes, this._OnError
 	hc.WS.Conn = ws
-	go this._OnOpen(hc)
+	if this._OnOpen != nil {
+		go this._OnOpen(hc)
+	}
 	defer hc.WS._onErrorChan()
 	for hc.WS.IsError == nil {
 		var byt []byte
