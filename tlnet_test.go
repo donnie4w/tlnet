@@ -129,7 +129,7 @@ func newWebsocketConfig() *WebsocketConfig {
 	wc := new(WebsocketConfig)
 	wc.MaxPayloadBytes = 1 << 20 * 100
 	wc.OnError = func(ws *Websocket) {
-		logging.Error("err:", ws.IsError)
+		logging.Error("err:", ws.Error)
 		err := ws.Close()
 		logging.Error(err)
 	}
