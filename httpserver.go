@@ -375,10 +375,10 @@ func (this *wsHandler) wsConnFunc(ws *websocket.Conn) {
 		go this._OnOpen(hc)
 	}
 	defer hc.WS._onErrorChan()
-	for hc.WS.IsError == nil {
+	for hc.WS.Error == nil {
 		var byt []byte
 		if err := websocket.Message.Receive(ws, &byt); err != nil {
-			hc.WS.IsError = err
+			hc.WS.Error = err
 			break
 		}
 		hc.WS._rbody = byt
