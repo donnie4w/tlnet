@@ -28,7 +28,6 @@ func (this *Filter) AddSuffixIntercept(suffixs []string, handlerFunc func(hc *Ht
 		if strings.Contains(v, ".") {
 			v = v[strings.LastIndex(v, ".")+1:]
 		}
-		// this.suffixMap[v] = 1
 		this.suffixMap.Put(v, 1)
 	}
 	this.suffixHandler = func(w ResponseWriter, r *Request) bool {
@@ -45,9 +44,6 @@ func (this *Filter) AddPageNotFoundIntercept(handlerFunc func(hc *HttpContext) b
 
 // 自定义拦截规则 pattern正则匹配
 func (this *Filter) AddIntercept(_pattern string, handlerFunc func(hc *HttpContext) bool) (err error) {
-	// this.matchMap[_pattern] = func(w ResponseWriter, r *Request) bool {
-	// 	return handlerFunc(newHttpContext(w, r))
-	// }
 	if this.matchMap.Has(_pattern) {
 		logger.Fatal("Duplicate matching[", _pattern, "]")
 		err = errors.New("Duplicate matching[" + _pattern + "]")
@@ -63,11 +59,6 @@ func (this *Filter) _processSuffix(uri string, w ResponseWriter, r *Request) boo
 	uri = strings.TrimSpace(uri)
 	if strings.Contains(uri, ".") {
 		suffix := uri[strings.LastIndex(uri, ".")+1:]
-		// if this.suffixMap[suffix] > 0 {
-		// 	if this.suffixHandler(w, r) {
-		// 		return true
-		// 	}
-		// }
 		if this.suffixMap.Has(suffix) {
 			if this.suffixHandler(w, r) {
 				return true
@@ -79,13 +70,6 @@ func (this *Filter) _processSuffix(uri string, w ResponseWriter, r *Request) boo
 
 func (this *Filter) _processGlobal(path string, w ResponseWriter, r *Request) (_r bool) {
 	path = strings.TrimSpace(path)
-	// for pattern, fun := range this.matchMap {
-	// 	if matchString(pattern, path) {
-	// 		if fun(w, r) {
-	// 			return true
-	// 		}
-	// 	}
-	// }
 	this.matchMap.Range(func(pattern string, fun func(ResponseWriter, *Request) bool) bool {
 		if matchString(pattern, path) {
 			if fun(w, r) {
