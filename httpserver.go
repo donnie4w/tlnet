@@ -256,23 +256,6 @@ type httpHandler struct {
 	_tlnet         *Tlnet
 }
 
-// func _checkmethod(path string, m map[string]string) (methed string, ok bool) {
-// 	path = path[:_getLastLetterIndex(path, "/")]
-// 	if methed, ok = m[path]; len(path) > 0 && !ok {
-// 		return _checkmethod(path[:len(path)-1], m)
-// 	}
-// 	return
-// }
-
-// func _getLastLetterIndex(s, _i string) (i int) {
-// 	for i = len(s); i > 0; i-- {
-// 		if s[i-1:i] == _i {
-// 			return
-// 		}
-// 	}
-// 	return
-// }
-
 func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	path, uri, url_uri := r.URL.Path, r.RequestURI, r.URL.RequestURI()
@@ -283,14 +266,12 @@ func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if url_uri[0] == '/' {
 			url_uri = url_uri[1:]
 		}
-		var method string
-		var ok bool
+		method, ok := "", false
 		if a, b := len(uri), len(url_uri); a != b {
 			root := r.RequestURI[:(a - b)]
 			method, ok = this._tlnet._methodpattern[root]
 		}
-
-		if ok && method != strings.ToUpper(r.Method) {
+		if ok && strings.ToUpper(method) != strings.ToUpper(r.Method) {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
@@ -300,7 +281,7 @@ func (this *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if this._staticHandler != nil && this._stub._filter != nil && this._stub._filter.notFoundhandler != nil {
 		dir := this._stub._dir
 		if dir != "" && dir[len(dir)-1:] != "/" {
-			dir = fmt.Sprint(dir, "/")
+			dir = dir + "/"
 		}
 		if _, err := os.Stat(dir + path); os.IsNotExist(err) {
 			if this._stub._filter.notFoundhandler != nil && this._stub._filter.notFoundhandler(w, r) {
