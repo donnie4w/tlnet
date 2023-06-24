@@ -153,10 +153,11 @@ func matchString(pattern string, s string) bool {
 type Map[K any, V any] struct {
 	m   sync.Map
 	len int64
+	mux *sync.Mutex
 }
 
 func newMap[K any, V any]() *Map[K, V] {
-	return &Map[K, V]{m: sync.Map{}}
+	return &Map[K, V]{m: sync.Map{}, mux: &sync.Mutex{}}
 }
 
 func (this *Map[K, V]) Put(key K, value V) {
@@ -178,6 +179,8 @@ func (this *Map[K, V]) Has(key K) (ok bool) {
 }
 
 func (this *Map[K, V]) Del(key K) {
+	this.mux.Lock()
+	defer this.mux.Unlock()
 	if _, ok := this.m.LoadAndDelete(key); ok {
 		atomic.AddInt64(&this.len, -1)
 	}
