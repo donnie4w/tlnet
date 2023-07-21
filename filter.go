@@ -1,5 +1,7 @@
 // Copyright (c) , donnie <donnie4w@gmail.com>
 // All rights reserved.
+//
+// github.com/donnie4w/tlnet
 package tlnet
 
 import (
@@ -16,10 +18,10 @@ func NewFilter() *Filter {
 }
 
 type Filter struct {
-	notFoundhandler func(ResponseWriter, *Request) bool               //uri not found bool为true时，执行func后，不再进行其他判断
-	suffixMap       *Map[string, int8]                                //map[string]int8  //suffix 后缀
-	suffixHandler   func(ResponseWriter, *Request) bool               //bool为true时，执行func后，不再进行其他判断
-	matchMap        *Map[string, func(ResponseWriter, *Request) bool] //map[string]func(ResponseWriter, *Request) bool //正则匹配 bool为true时，执行func后，不再进行其他判断
+	notFoundhandler func(ResponseWriter, *Request) bool                //uri not found bool为true时，执行func后，不再进行其他判断
+	suffixMap       *mapl[string, int8]                                //map[string]int8  //suffix 后缀
+	suffixHandler   func(ResponseWriter, *Request) bool                //bool为true时，执行func后，不再进行其他判断
+	matchMap        *mapl[string, func(ResponseWriter, *Request) bool] //map[string]func(ResponseWriter, *Request) bool //正则匹配 bool为true时，执行func后，不再进行其他判断
 }
 
 // suffixs 后缀拦截，方法返回true则，则不执行Filter后的handlerFunc，直接返回

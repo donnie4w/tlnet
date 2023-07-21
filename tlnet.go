@@ -1,5 +1,7 @@
 // Copyright (c) , donnie <donnie4w@gmail.com>
 // All rights reserved.
+//
+// github.com/donnie4w/tlnet
 package tlnet
 
 import (
@@ -80,7 +82,7 @@ func (this *Tlnet) HandleWebSocketBindOriginFunc(pattern string, handlerFunc fun
 }
 
 func (this *Tlnet) HandleWebSocketBindConfig(pattern string, handlerFunc func(hc *HttpContext), config *WebsocketConfig) {
-	this._wss = append(this._wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc, _OriginFunc: config.OriginFunc, _Origin: config.Origin, _MaxPayloadBytes: config.MaxPayloadBytes, _OnError: config.OnError}))
+	this._wss = append(this._wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc, _OriginFunc: config.OriginFunc, _Origin: config.Origin, _MaxPayloadBytes: config.MaxPayloadBytes, _OnError: config.OnError, _OnOpen: config.OnOpen}))
 }
 
 func (this *Tlnet) HandleWithFilter(pattern string, _filter *Filter, handlerFunc func(hc *HttpContext)) {
