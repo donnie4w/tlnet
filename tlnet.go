@@ -172,10 +172,10 @@ func (this *HttpContext) PostParams(key string) (_r []string) {
 	return this.r.Form[key]
 }
 
-// 重定向
+// 重定向302
 func (this *HttpContext) Redirect(path string) {
 	defer myRecover()
-	http.Redirect(this.w, this.r, path, http.StatusTemporaryRedirect)
+	http.Redirect(this.w, this.r, path, http.StatusFound)
 	return
 }
 
