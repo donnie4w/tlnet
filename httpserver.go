@@ -375,9 +375,9 @@ func processorHandler(w ResponseWriter, r *Request, processor thrift.TProcessor,
 	case JSON:
 		protocolFactory = thrift.NewTJSONProtocolFactory()
 	case BINARY:
-		protocolFactory = thrift.NewTBinaryProtocolFactoryDefault()
+		protocolFactory = thrift.NewTBinaryProtocolFactoryConf(&thrift.TConfiguration{})
 	case COMPACT:
-		protocolFactory = thrift.NewTCompactProtocolFactory()
+		protocolFactory = thrift.NewTCompactProtocolFactoryConf(&thrift.TConfiguration{})
 	}
 	transport := thrift.NewStreamTransport(r.Body, w)
 	ioProtocol := protocolFactory.GetProtocol(transport)
