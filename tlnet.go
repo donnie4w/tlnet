@@ -131,6 +131,9 @@ func (this *HttpContext) ResponseBytes(status int, bs []byte) (_r int, err error
 		status = http.StatusOK
 	}
 	this.w.WriteHeader(status)
+	if this.w.Header().Get("Content-Length") == "" {
+		this.w.Header().Add("Content-Length", fmt.Sprint(len(bs)))
+	}
 	_r, err = this.w.Write(bs)
 	return
 }
