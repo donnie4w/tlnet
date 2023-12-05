@@ -1,6 +1,14 @@
-github.com/apache/thrift v0.18.1 h1:lNhK/1nqjbwbiOPDBPFJVKxgDEGSepKuTh6OLiXW8kg=
-github.com/apache/thrift v0.18.1/go.mod h1:rdQn/dCcDKEWjjylUeueum4vQEjG2v8v2PqriUnbr+I=
+github.com/apache/thrift v0.19.0 h1:sOqkWPzMj7w6XaYbJQG7m4sGqVolaW/0D28Ln7yPzMk=
+github.com/apache/thrift v0.19.0/go.mod h1:SUALL216IiaOw2Oy+5Vs9lboJ/t9g40C+G07Dc0QC1I=
+github.com/donnie4w/gofer v0.0.0-20231124113624-7cb1e41f0c37 h1:+KG9zENmPwMaGLE/AYm5sTKja9ur3A4EWdtJZqQpOxk=
+github.com/donnie4w/gofer v0.0.0-20231124113624-7cb1e41f0c37/go.mod h1:NBFGqFrGtP18d/ERanemMKbklv0ua1pHjAUKv4ZVo4M=
+github.com/donnie4w/gothrift v0.0.0-20230914065902-8bf311a8a055 h1:ltpxjnhAeuErDaXLFCKQ1e8/i5SXZXhXaWjXJphCFJM=
+github.com/donnie4w/gothrift v0.0.0-20230914065902-8bf311a8a055/go.mod h1:Uc0QnOpnPQy7TT2yFi1EZPi09gLPClsoh5hVOndJ4l0=
 github.com/donnie4w/simplelog v0.0.0-20230314062410-91fe7ae5429d h1:UVQP/+VZEMNi+8glpVawWJKCBMzJb038ouELq+u9tEI=
 github.com/donnie4w/simplelog v0.0.0-20230314062410-91fe7ae5429d/go.mod h1:UNoDOR7K08td8Lgvxb46ViOoFPcbFqt0Fi3bkC8fKx4=
+github.com/golang/snappy v0.0.4 h1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=
+github.com/golang/snappy v0.0.4/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
+golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa h1:FRnLl4eNAQl8hwxVVC17teOw8kdjVDVAiFMtgUdTSRQ=
+golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa/go.mod h1:zk2irFbV9DP96SEBUUAy67IdHUaZuSnrz1n472HUCLE=
 golang.org/x/net v0.8.0 h1:Zrh2ngAOFYneWTAIAPethzeaQLuHwhuBkuV6ZiRnUaQ=
 golang.org/x/net v0.8.0/go.mod h1:QVkue5JL9kW//ek3r6jTKnTFis1tRmNAW2P1shuFdJc=
