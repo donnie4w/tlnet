@@ -5,17 +5,14 @@
 package tlnet
 
 import (
-	"bytes"
-	"encoding/binary"
-	"hash/crc32"
 	"net/http"
 	"net/url"
-	"os"
 	"regexp"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/donnie4w/gofer/util"
 	"golang.org/x/net/websocket"
 )
 
@@ -102,19 +99,15 @@ func newHttpContext(w http.ResponseWriter, r *http.Request) *HttpContext {
 }
 
 func wsId(_seq int64) (_r int64) {
-	_r = int64(_crc32(append(_int64ToBytes(int64(os.Getpid())), _int64ToBytes(time.Now().UnixNano())...)))
-	_r = _r<<31 | int64(_seq&0x0000ffff)
+	b := make([]byte, 16)
+	copy(b[0:8], util.Int64ToBytes(util.RandId()))
+	copy(b[8:], util.Int64ToBytes(time.Now().UnixNano()))
+	_r = int64(util.CRC32(b))
+	_r = _r<<32 | int64(int32(_seq))
+	if _r < 0 {
+		_r = -_r
+	}
 	return
-}
-
-func _crc32(bs []byte) uint32 {
-	return crc32.ChecksumIEEE(bs)
-}
-
-func _int64ToBytes(n int64) []byte {
-	bytesBuffer := bytes.NewBuffer([]byte{})
-	binary.Write(bytesBuffer, binary.BigEndian, n)
-	return bytesBuffer.Bytes()
 }
 
 func (this *HttpContext) GetCookie(name string) (_r string, err error) {
