@@ -5,6 +5,7 @@
 package tlnet
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -200,6 +201,12 @@ func (this *HttpContext) FormFiles(key string) *multipart.Form {
 
 func (this *HttpContext) Request() *http.Request {
 	return this.r
+}
+
+func (this *HttpContext) RequestBody() []byte {
+	var buf bytes.Buffer
+	io.Copy(&buf, this.r.Body)
+	return buf.Bytes()
 }
 
 func (this *HttpContext) Writer() http.ResponseWriter {
