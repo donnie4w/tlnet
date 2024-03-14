@@ -19,11 +19,9 @@ import (
 type Websocket struct {
 	Id           int64
 	_rbody       []byte
-	_wbody       interface{}
 	Conn         *websocket.Conn
 	Error        error
 	_OnError     func(self *Websocket)
-	_OnOpen      func(hc *HttpContext)
 	_mutex       *sync.Mutex
 	_doErrorFunc bool
 }
@@ -32,33 +30,33 @@ func NewWebsocket(_id int64) *Websocket {
 	return &Websocket{Id: _id, _mutex: new(sync.Mutex), _doErrorFunc: false}
 }
 
-func (this *Websocket) Send(v interface{}) (err error) {
+func (t *Websocket) Send(v interface{}) (err error) {
 	defer myRecover()
-	if this.Error == nil {
-		if err = websocket.Message.Send(this.Conn, v); err != nil {
-			this.Error = err
+	if t.Error == nil {
+		if err = websocket.Message.Send(t.Conn, v); err != nil {
+			t.Error = err
 		}
-		this._onErrorChan()
+		t._onErrorChan()
 	}
-	return this.Error
+	return t.Error
 }
 
-func (this *Websocket) Read() []byte {
-	return this._rbody
+func (t *Websocket) Read() []byte {
+	return t._rbody
 }
 
-func (this *Websocket) Close() (err error) {
-	return this.Conn.Close()
+func (t *Websocket) Close() (err error) {
+	return t.Conn.Close()
 }
 
-func (this *Websocket) _onErrorChan() {
+func (t *Websocket) _onErrorChan() {
 	defer myRecover()
-	if this.Error != nil && this._OnError != nil && !this._doErrorFunc {
-		this._mutex.Lock()
-		defer this._mutex.Unlock()
-		if !this._doErrorFunc {
-			this._doErrorFunc = true
-			this._OnError(this)
+	if t.Error != nil && t._OnError != nil && !t._doErrorFunc {
+		t._mutex.Lock()
+		defer t._mutex.Unlock()
+		if !t._doErrorFunc {
+			t._doErrorFunc = true
+			t._OnError(t)
 		}
 	}
 }
@@ -110,25 +108,25 @@ func wsId(_seq int64) (_r int64) {
 	return
 }
 
-func (this *HttpContext) GetCookie(name string) (_r string, err error) {
-	cookieValue, er := this.r.Cookie(name)
+func (t *HttpContext) GetCookie(name string) (_r string, err error) {
+	cookieValue, er := t.r.Cookie(name)
 	if er == nil {
 		_r = cookieValue.Value
 	}
 	err = er
 	return
 }
-func (this *HttpContext) SetCookie(name, value, path string, maxAge int) {
+func (t *HttpContext) SetCookie(name, value, path string, maxAge int) {
 	cookie := http.Cookie{Name: name, Value: value, Path: path, MaxAge: maxAge}
-	http.SetCookie(this.w, &cookie)
+	http.SetCookie(t.w, &cookie)
 }
 
-func (this *HttpContext) SetCookie2(cookie *http.Cookie) {
-	http.SetCookie(this.w, cookie)
+func (t *HttpContext) SetCookie2(cookie *http.Cookie) {
+	http.SetCookie(t.w, cookie)
 }
 
-func (this *HttpContext) MaxBytesReader(_max int64) {
-	this.r.Body = http.MaxBytesReader(this.w, this.r.Body, _max)
+func (t *HttpContext) MaxBytesReader(_max int64) {
+	t.r.Body = http.MaxBytesReader(t.w, t.r.Body, _max)
 }
 
 func myRecover() {
@@ -155,38 +153,38 @@ func newMap[K any, V any]() *mapl[K, V] {
 	return &mapl[K, V]{m: sync.Map{}, mux: &sync.Mutex{}}
 }
 
-func (this *mapl[K, V]) Put(key K, value V) {
-	if _, ok := this.m.Swap(key, value); !ok {
-		atomic.AddInt64(&this.len, 1)
+func (t *mapl[K, V]) Put(key K, value V) {
+	if _, ok := t.m.Swap(key, value); !ok {
+		atomic.AddInt64(&t.len, 1)
 	}
 }
 
-func (this *mapl[K, V]) Get(key K) (t V, ok bool) {
-	if v, ok := this.m.Load(key); ok {
+func (t *mapl[K, V]) Get(key K) (_r V, ok bool) {
+	if v, ok := t.m.Load(key); ok {
 		return v.(V), ok
 	}
-	return t, false
+	return _r, false
 }
 
-func (this *mapl[K, V]) Has(key K) (ok bool) {
-	_, ok = this.m.Load(key)
+func (t *mapl[K, V]) Has(key K) (ok bool) {
+	_, ok = t.m.Load(key)
 	return
 }
 
-func (this *mapl[K, V]) Del(key K) {
-	this.mux.Lock()
-	defer this.mux.Unlock()
-	if _, ok := this.m.LoadAndDelete(key); ok {
-		atomic.AddInt64(&this.len, -1)
+func (t *mapl[K, V]) Del(key K) {
+	t.mux.Lock()
+	defer t.mux.Unlock()
+	if _, ok := t.m.LoadAndDelete(key); ok {
+		atomic.AddInt64(&t.len, -1)
 	}
 }
 
-func (this *mapl[K, V]) Range(f func(k K, v V) bool) {
-	this.m.Range(func(k, v any) bool {
+func (t *mapl[K, V]) Range(f func(k K, v V) bool) {
+	t.m.Range(func(k, v any) bool {
 		return f(k.(K), v.(V))
 	})
 }
 
-func (this *mapl[K, V]) Len() int64 {
-	return this.len
+func (t *mapl[K, V]) Len() int64 {
+	return t.len
 }
