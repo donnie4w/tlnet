@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/donnie4w/simplelog/logging"
@@ -214,7 +215,9 @@ func (t *HttpContext) Writer() http.ResponseWriter {
 func ParseFormFile(file multipart.File, fileHeader *multipart.FileHeader, savePath, namePrefix string) (fileName string, err error) {
 	defer myRecover()
 	defer file.Close()
-	f, er := os.Create(fmt.Sprint(savePath, "/", namePrefix, fileHeader.Filename))
+	filepath:=savePath+"/"+namePrefix+fileHeader.Filename
+	os.MkdirAll(path.Dir(filepath), 0777)
+	f, er := os.Create(filepath)
 	err = er
 	if err == nil {
 		fileName = fileHeader.Filename
