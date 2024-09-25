@@ -215,7 +215,7 @@ BenchmarkEcho-16         2118523               571.2 ns/op          1025 B/op   
 ```
 ------
 
-##### 为注册URL处理器，即能找到URL的场景
+##### 未注册URL处理器，即能找到URL的场景
 
 ```text
 goarch: amd64
