@@ -1,143 +1,137 @@
-// Copyright (c) , donnie <donnie4w@gmail.com>
+// Copyright (c) 2023, donnie <donnie4w@gmail.com>
 // All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 //
-// github.com/donnie4w/tlnet
+// github.como/donnie4w/tlnet
+
 package tlnet
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/url"
-	"os"
-	"path"
 	"strings"
-
-	"github.com/donnie4w/simplelog/logging"
 )
 
-var logger = logging.NewLogger().SetFormat(logging.FORMAT_DATE | logging.FORMAT_TIME | logging.FORMAT_MICROSECNDS).SetLevel(logging.LEVEL_ERROR)
-
 func (t *Tlnet) Handle(pattern string, handlerFunc func(hc *HttpContext)) {
-	t.AddHandlerFunc(pattern, nil, func(w http.ResponseWriter, r *http.Request) {
-		handlerFunc(newHttpContext(w, r))
-	})
+	logger.Debug("[Handle] " + pattern)
+	t.handlerFunc(defaultMethod, pattern, handlerFunc)
 }
 
 func (t *Tlnet) POST(pattern string, handlerFunc func(hc *HttpContext)) {
-	t._methodpattern[pattern] = http.MethodPost
-	t.Handle(pattern, handlerFunc)
+	logger.Debug("[POST] " + pattern)
+	t.handlerFunc(HttpPost, pattern, handlerFunc)
 }
 
 func (t *Tlnet) PATCH(pattern string, handlerFunc func(hc *HttpContext)) {
-	t._methodpattern[pattern] = http.MethodPatch
-	t.Handle(pattern, handlerFunc)
+	logger.Debug("[PATCH] " + pattern)
+	t.handlerFunc(HttpPatch, pattern, handlerFunc)
 }
 
 func (t *Tlnet) PUT(pattern string, handlerFunc func(hc *HttpContext)) {
-	t._methodpattern[pattern] = http.MethodPut
-	t.Handle(pattern, handlerFunc)
+	logger.Debug("[PUT] " + pattern)
+	t.handlerFunc(HttpPut, pattern, handlerFunc)
 }
 
 func (t *Tlnet) DELETE(pattern string, handlerFunc func(hc *HttpContext)) {
-	t._methodpattern[pattern] = http.MethodDelete
-	t.Handle(pattern, handlerFunc)
+	logger.Debug("[DELETE] " + pattern)
+	t.handlerFunc(HttpDelete, pattern, handlerFunc)
 }
 
 func (t *Tlnet) GET(pattern string, handlerFunc func(hc *HttpContext)) {
-	t._methodpattern[pattern] = http.MethodGet
-	t.Handle(pattern, handlerFunc)
+	logger.Debug("[GET] " + pattern)
+	t.handlerFunc(HttpGet, pattern, handlerFunc)
 }
 
 func (t *Tlnet) OPTIONS(pattern string, handlerFunc func(hc *HttpContext)) {
-	t._methodpattern[pattern] = http.MethodOptions
-	t.Handle(pattern, handlerFunc)
+	logger.Debug("[OPTIONS] " + pattern)
+	t.handlerFunc(HttpOptions, pattern, handlerFunc)
 }
 
 func (t *Tlnet) HEAD(pattern string, handlerFunc func(hc *HttpContext)) {
-	t._methodpattern[pattern] = http.MethodHead
-	t.Handle(pattern, handlerFunc)
+	logger.Debug("[HEAD] " + pattern)
+	t.handlerFunc(HttpHead, pattern, handlerFunc)
 }
 
 func (t *Tlnet) TRACE(pattern string, handlerFunc func(hc *HttpContext)) {
-	t._methodpattern[pattern] = http.MethodTrace
-	t.Handle(pattern, handlerFunc)
+	logger.Debug("[TRACE] " + pattern)
+	t.handlerFunc(HttpTrace, pattern, handlerFunc)
 }
 
 func (t *Tlnet) CONNECT(pattern string, handlerFunc func(hc *HttpContext)) {
-	t._methodpattern[pattern] = http.MethodConnect
-	t.Handle(pattern, handlerFunc)
+	logger.Debug("[CONNECT] " + pattern)
+	t.handlerFunc(HttpConnect, pattern, handlerFunc)
 }
 
 func (t *Tlnet) HandleWebSocket(pattern string, handlerFunc func(hc *HttpContext)) {
-	t._wss = append(t._wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc}))
+	logger.Debug("[HandleWebSocket] " + pattern)
+	t.wss = append(t.wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc}))
 }
 
 func (t *Tlnet) HandleWebSocketBindOrigin(pattern, origin string, handlerFunc func(hc *HttpContext)) {
-	t._wss = append(t._wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc, _Origin: origin}))
+	logger.Debug("[HandleWebSocketBindOrigin] " + pattern)
+	t.wss = append(t.wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc, origin: origin}))
 }
 
 func (t *Tlnet) HandleWebSocketBindOriginFunc(pattern string, handlerFunc func(hc *HttpContext), originFunc func(origin *url.URL) bool) {
-	t._wss = append(t._wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc, _OriginFunc: originFunc}))
+	logger.Debug("[HandleWebSocketBindOrigin] " + pattern)
+	t.wss = append(t.wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc, originFunc: originFunc}))
 }
 
 func (t *Tlnet) HandleWebSocketBindConfig(pattern string, handlerFunc func(hc *HttpContext), config *WebsocketConfig) {
-	t._wss = append(t._wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc, _OriginFunc: config.OriginFunc, _Origin: config.Origin, _MaxPayloadBytes: config.MaxPayloadBytes, _OnError: config.OnError, _OnOpen: config.OnOpen}))
+	logger.Debug("[HandleWebSocketBindConfig] " + pattern)
+	t.wss = append(t.wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc, originFunc: config.OriginFunc, origin: config.Origin, maxPayloadBytes: config.MaxPayloadBytes, onError: config.OnError, onOpen: config.OnOpen}))
 }
 
-func (t *Tlnet) HandleWithFilter(pattern string, _filter *Filter, handlerFunc func(hc *HttpContext)) {
-	if handlerFunc != nil {
-		t.AddHandlerFunc(pattern, _filter, func(w http.ResponseWriter, r *http.Request) {
-			handlerFunc(newHttpContext(w, r))
-		})
-	} else {
-		t.AddHandlerFunc(pattern, _filter, nil)
-	}
+func (t *Tlnet) HandleWithFilter(pattern string, _filter *Filter, handlerctx func(hc *HttpContext)) {
+	logger.Debug("[HandleWithFilter] " + pattern)
+	t.addhandlerctx(defaultMethod, pattern, _filter, handlerctx)
 }
 
-func (t *Tlnet) HandleStatic(pattern, dir string, handlerFunc func(hc *HttpContext)) {
-	if handlerFunc != nil {
-		t.AddStaticHandler(pattern, dir, nil, func(w http.ResponseWriter, r *http.Request) {
-			handlerFunc(newHttpContext(w, r))
-		})
-	} else {
-		t.AddStaticHandler(pattern, dir, nil, nil)
-	}
+func (t *Tlnet) HandleStatic(pattern, dir string, handlerctx func(hc *HttpContext)) {
+	logger.Debug("[HandleStatic] " + pattern)
+	t.addstatichandlerctx(defaultMethod, pattern, dir, nil, handlerctx)
 }
 
-func (t *Tlnet) HandleStaticWithFilter(pattern, dir string, _filter *Filter, handlerFunc func(hc *HttpContext)) {
-	if handlerFunc != nil {
-		t.AddStaticHandler(pattern, dir, _filter, func(w http.ResponseWriter, r *http.Request) {
-			handlerFunc(newHttpContext(w, r))
-		})
-	} else {
-		t.AddStaticHandler(pattern, dir, _filter, nil)
-	}
+func (t *Tlnet) HandleStaticWithFilter(pattern, dir string, _filter *Filter, handlerctx func(hc *HttpContext)) {
+	logger.Debug("[HandleStaticWithFilter] " + pattern)
+	t.addstatichandlerctx(defaultMethod, pattern, dir, _filter, handlerctx)
 }
 
-func SetLogOFF() {
-	logger.SetLevel(logging.LEVEL_OFF)
+func SetLogger(on bool) {
+	logger.SetLogger(on)
 }
 
-// 数据返回客户端
+func SetLoggerLevel(l level) {
+	logger.SetLoggerLevel(l)
+}
+
+// ResponseString
 // return the data to the client
 func (t *HttpContext) ResponseString(data string) (_r int, err error) {
 	return t.ResponseBytes(http.StatusOK, []byte(data))
 }
 
 func (t *HttpContext) ResponseBytes(status int, bs []byte) (_r int, err error) {
-	defer myRecover()
 	if status == 0 {
 		status = http.StatusOK
 	}
 	t.w.WriteHeader(status)
-	if t.w.Header().Get("Content-Length") == "" {
-		t.w.Header().Add("Content-Length", fmt.Sprint(len(bs)))
+	if len(bs) > 0 {
+		_r, err = t.w.Write(bs)
 	}
-	_r, err = t.w.Write(bs)
 	return
+}
+
+// Error replies to the request with the specified error message and HTTP code.
+// It does not otherwise end the request; the caller should ensure no further
+// writes are done to w.
+// The error message should be plain text.
+func (t *HttpContext) Error(error string, code int) {
+	http.Error(t.Writer(), error, code)
 }
 
 // GetParam gets the first value associated with the given key.
@@ -145,14 +139,20 @@ func (t *HttpContext) ResponseBytes(status int, bs []byte) (_r int, err error) {
 // the empty string. To access multiple values, use the map
 // directly.
 func (t *HttpContext) GetParam(key string) (_r string) {
-	defer myRecover()
 	_r = t.r.URL.Query().Get(key)
+	if logger.IsVaild {
+		logger.Debug("[GetParam] "+key, ", result:", _r)
+	}
 	return
 }
 
-// TrimSpace GetParam
+// GetParamTrimSpace TrimSpace GetParam
 func (t *HttpContext) GetParamTrimSpace(key string) (_r string) {
-	return strings.TrimSpace(t.GetParam(key))
+	_r = strings.TrimSpace(t.GetParam(key))
+	if logger.IsVaild {
+		logger.Debug("[GetParamTrimSpace] "+key, ", result:", _r)
+	}
+	return
 }
 
 // PostParam returns the first value for the named component of the query.
@@ -160,41 +160,60 @@ func (t *HttpContext) GetParamTrimSpace(key string) (_r string) {
 // If key is not present, PostParam returns the empty string.
 // To access multiple values of the same key, call PostParams
 func (t *HttpContext) PostParam(key string) (_r string) {
-	defer myRecover()
 	_r = t.r.FormValue(key)
+	if logger.IsVaild {
+		logger.Debug("[PostParam] "+key, ", result:", _r)
+	}
 	return
 }
 
-// TrimSpace PostParam
+// PostParamTrimSpace TrimSpace PostParam
 func (t *HttpContext) PostParamTrimSpace(key string) (_r string) {
-	return strings.TrimSpace(t.PostParam(key))
+	_r = strings.TrimSpace(t.PostParam(key))
+	if logger.IsVaild {
+		logger.Debug("[PostParamTrimSpace] "+key, ", result:", _r)
+	}
+	return
 }
 
-/*multiple values of the same key*/
+// PostParams
+// multiple values of the same key
 func (t *HttpContext) PostParams(key string) (_r []string) {
-	defer myRecover()
 	t.r.ParseForm()
-	return t.r.Form[key]
+	_r = t.r.Form[key]
+	if logger.IsVaild {
+		logger.Debug("[PostParams] "+key, ", result:", _r)
+	}
+	return
 }
 
-// 重定向302
+// Redirect
+// 重定向 302
 func (t *HttpContext) Redirect(path string) {
-	defer myRecover()
+	if logger.IsVaild {
+		logger.Debug("[Redirect] " + path)
+	}
 	http.Redirect(t.w, t.r, path, http.StatusFound)
 }
 
 func (t *HttpContext) RedirectWithStatus(path string, status int) {
-	defer myRecover()
+	if logger.IsVaild {
+		logger.Debug("[RedirectWithStatus] "+path, ",status:", status)
+	}
 	http.Redirect(t.w, t.r, path, status)
 }
 
 func (t *HttpContext) FormFile(key string) (multipart.File, *multipart.FileHeader, error) {
-	defer myRecover()
+	if logger.IsVaild {
+		logger.Debug("[FormFile] " + key)
+	}
 	return t.r.FormFile(key)
 }
 
 func (t *HttpContext) FormFiles(key string) *multipart.Form {
-	defer myRecover()
+	if logger.IsVaild {
+		logger.Debug("[FormFiles] " + key)
+	}
 	return t.r.MultipartForm
 }
 
@@ -210,19 +229,4 @@ func (t *HttpContext) RequestBody() []byte {
 
 func (t *HttpContext) Writer() http.ResponseWriter {
 	return t.w
-}
-
-func ParseFormFile(file multipart.File, fileHeader *multipart.FileHeader, savePath, namePrefix string) (fileName string, err error) {
-	defer myRecover()
-	defer file.Close()
-	filepath:=savePath+"/"+namePrefix+fileHeader.Filename
-	os.MkdirAll(path.Dir(filepath), 0777)
-	f, er := os.Create(filepath)
-	err = er
-	if err == nil {
-		fileName = fileHeader.Filename
-		defer f.Close()
-		_, err = io.Copy(f, file)
-	}
-	return
 }
