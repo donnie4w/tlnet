@@ -1,15 +1,20 @@
-// Copyright (c) , donnie <donnie4w@gmail.com>
+// Copyright (c) 2023, donnie <donnie4w@gmail.com>
 // All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+//
+// github.como/donnie4w/tlnet
+
 package tlnet
 
 import (
-	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -17,29 +22,21 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-type TTYPE int
-
-const (
-	_ TTYPE = iota
-	JSON
-	BINARY
-	COMPACT
-)
-
 type stub struct {
-	_pattern   string
-	_dir       string
-	_filter    *Filter
-	_handler   func(http.ResponseWriter, *http.Request)
-	_processor thrift.TProcessor
-	_ttype     TTYPE
+	pattern    string
+	dir        string
+	filter     *Filter
+	handler    func(http.ResponseWriter, *http.Request)
+	tProcessor thrift.TProcessor
+	tftype     tf_pco_type
+	httpMethod httpMethod
 }
 
-func newStub(pattern, dir string, filter *Filter, handler func(http.ResponseWriter, *http.Request), processor thrift.TProcessor, ttype TTYPE) *stub {
+func newStub(pattern, dir string, filter *Filter, handler func(http.ResponseWriter, *http.Request), processor thrift.TProcessor, ttype tf_pco_type, method httpMethod) *stub {
 	if pattern[0] != '/' {
-		panic(fmt.Sprint("pattern error,[", pattern, "] must begin with '/'"))
+		patternpanic(pattern)
 	}
-	return &stub{pattern, dir, filter, handler, processor, ttype}
+	return &stub{pattern, dir, filter, handler, processor, ttype, method}
 }
 
 type wsStub struct {
@@ -48,34 +45,64 @@ type wsStub struct {
 }
 
 func newWsStub(pattern string, handler *wsHandler) *wsStub {
-	if pattern[0] != '/' {
-		panic(fmt.Sprint("pattern error,[", pattern, "] must begin with '/'"))
+	if !strings.HasPrefix(pattern, "/") {
+		patternpanic(pattern)
 	}
 	return &wsStub{pattern, handler}
 }
 
+// NewTlnet creates and returns a new instance of Tlnet.
+//
+// This function initializes all necessary fields of the Tlnet structure and sets default values,
+// preparing it to handle HTTP requests and WebSocket connections.
+// The returned Tlnet instance can be used to configure routes, handle requests, and manage connections.
 func NewTlnet() *Tlnet {
 	t := new(Tlnet)
-	t._processors = make([]*stub, 0)
-	t._staticHandlers = make([]*stub, 0)
-	t._handlers = make([]*stub, 0)
+	t.processors = make([]*stub, 0)
+	t.staticHandlers = make([]*stub, 0)
+	t.handlers = make([]*stub, 0)
 	t.Server = new(http.Server)
-	t._serverMux = http.NewServeMux()
-	t.Server.Handler = t._serverMux
-	t._wss = make([]*wsStub, 0)
-	t._methodpattern = make(map[string]string, 0)
+	t.wss = make([]*wsStub, 0)
+	t.UseTlnetMux()
 	return t
 }
 
+func (t *Tlnet) UseTlnetMux() *Tlnet {
+	t.handlemux = NewTlnetMux()
+	t.Server.Handler = t.handlemux
+	t.mod = tlnetmod
+	return t
+}
+
+func (t *Tlnet) UseTlnetMuxWithLimit(limit int) *Tlnet {
+	t.handlemux = NewTlnetMuxWithLimit(limit)
+	t.Server.Handler = t.handlemux
+	t.mod = tlnetmod
+	return t
+}
+
+func (t *Tlnet) UseServeMux() *Tlnet {
+	t.handlemux = http.NewServeMux()
+	t.Server.Handler = t.handlemux
+	t.mod = nativemod
+	return t
+}
+
+type TlnetMux interface {
+	ServeHTTP(http.ResponseWriter, *http.Request)
+	Handle(string, http.Handler)
+	HandleFunc(string, func(http.ResponseWriter, *http.Request))
+}
+
 type Tlnet struct {
-	_maxBytes       int64
-	_processors     []*stub
-	_handlers       []*stub
-	_staticHandlers []*stub
-	Server          *http.Server
-	_serverMux      *http.ServeMux
-	_wss            []*wsStub
-	_methodpattern  map[string]string
+	maxBytes       int64
+	processors     []*stub
+	handlers       []*stub
+	staticHandlers []*stub
+	Server         *http.Server
+	handlemux      TlnetMux
+	wss            []*wsStub
+	mod            muxmod
 }
 
 // TLSConfig optionally provides a TLS configuration for use
@@ -98,6 +125,7 @@ func (t *Tlnet) TLSConfig(_TLSConfig *tls.Config) {
 // upload rate, most users will prefer to use
 // ReadHeaderTimeout. It is valid to use them both.
 func (t *Tlnet) ReadTimeout(_ReadTimeout time.Duration) {
+	logger.Debug("[ReadTimeout]:", _ReadTimeout)
 	t.Server.ReadTimeout = _ReadTimeout
 }
 
@@ -108,6 +136,7 @@ func (t *Tlnet) ReadTimeout(_ReadTimeout time.Duration) {
 // is zero, the value of ReadTimeout is used. If both are
 // zero, there is no timeout.
 func (t *Tlnet) ReadHeaderTimeout(_ReadHeaderTimeout time.Duration) {
+	logger.Debug("[ReadHeaderTimeout]:", _ReadHeaderTimeout)
 	t.Server.ReadHeaderTimeout = _ReadHeaderTimeout
 }
 
@@ -117,6 +146,7 @@ func (t *Tlnet) ReadHeaderTimeout(_ReadHeaderTimeout time.Duration) {
 // let Handlers make decisions on a per-request basis.
 // A zero or negative value means there will be no timeout.
 func (t *Tlnet) WriteTimeout(_WriteTimeout time.Duration) {
+	logger.Debug("[WriteTimeout]:", _WriteTimeout)
 	t.Server.WriteTimeout = _WriteTimeout
 }
 
@@ -125,6 +155,7 @@ func (t *Tlnet) WriteTimeout(_WriteTimeout time.Duration) {
 // is zero, the value of ReadTimeout is used. If both are
 // zero, there is no timeout.
 func (t *Tlnet) IdleTimeout(_IdleTimeout time.Duration) {
+	logger.Debug("[IdleTimeout]:", _IdleTimeout)
 	t.Server.IdleTimeout = _IdleTimeout
 }
 
@@ -134,77 +165,78 @@ func (t *Tlnet) IdleTimeout(_IdleTimeout time.Duration) {
 // size of the request body.
 // If zero, DefaultMaxHeaderBytes is used.
 func (t *Tlnet) MaxHeaderBytes(_MaxHeaderBytes int) {
+	logger.Debug("[MaxHeaderBytes]:", _MaxHeaderBytes)
 	t.Server.MaxHeaderBytes = _MaxHeaderBytes
 }
 
-// 数据库文件路径
-// func (t *tlnet) DBPath(dbPath string) {
-// 	t._dbPath = dbPath
-// }
-
-// 设置请求body限制
+// SetMaxBytesReader
+// Sets the request body size limit
 func (t *Tlnet) SetMaxBytesReader(maxBytes int64) {
-	t._maxBytes = maxBytes
+	logger.Debug("[SetMaxBytesReader]:", maxBytes)
+	t.maxBytes = maxBytes
 }
 
-// 处理thrift协议请求
-func (t *Tlnet) AddProcessor(pattern string, processor thrift.TProcessor) {
-	t._addProcessor(pattern, processor, JSON)
-}
-
-func (t *Tlnet) AddBinaryProcessor(pattern string, processor thrift.TProcessor) {
-	t._addProcessor(pattern, processor, BINARY)
-}
-
-func (t *Tlnet) AddCompactProcessor(pattern string, processor thrift.TProcessor) {
-	t._addProcessor(pattern, processor, COMPACT)
-}
-
-func (t *Tlnet) _addProcessor(pattern string, processor thrift.TProcessor, ttype TTYPE) {
-	// t._processors = append(t._processors, &stub{_pattern: pattern, _processor: processor, _ttype: ttype})
-	t._processors = append(t._processors, newStub(pattern, "", nil, nil, processor, ttype))
-}
-
-// 处理动态请求
-func (t *Tlnet) AddHandlerFunc(pattern string, f *Filter, handlerFunc func(http.ResponseWriter, *http.Request)) {
-	// t._handlers = append(t._handlers, &stub{_pattern: pattern, _filter: f, _handler: handlerFunc})
-	t._handlers = append(t._handlers, newStub(pattern, "", f, handlerFunc, nil, 0))
-}
-
-// 处理静态页面
-func (t *Tlnet) AddStaticHandler(pattern string, dir string, f *Filter, handlerFunc func(http.ResponseWriter, *http.Request)) {
-	t._staticHandlers = append(t._staticHandlers, newStub(pattern, dir, f, handlerFunc, nil, 0))
-}
-
-/**http**/
+// HttpStart
+//
+// addr optionally specifies the TCP address for the server to listen on,
+// in the form "host:port". If empty, ":http" (port 80) is used.
+// The service names are defined in RFC 6335 and assigned by IANA.
+// See net.Dial for details of the address format.
+//
+// e.g.
+//
+// 1. HttpStart(":8080")
+//
+// 2. HttpStart("127.0.0.1:8080")
 func (t *Tlnet) HttpStart(addr string) (err error) {
-	t._Handle()
+	t.handle()
 	t.Server.Addr = addr
-	err = t.Server.ListenAndServe()
-	if err != nil {
-		logger.Error("tlnet start error:", err.Error())
+	if err = t.Server.ListenAndServe(); err != nil {
+		logger.Error("[Tlnet start failed]", err.Error())
 	}
 	return
 }
 
-/**http tls**/
-func (t *Tlnet) HttpStartTLS(addr string, certFile, keyFile string) (err error) {
-	t._Handle()
+// HttpsStart
+//
+// addr optionally specifies the TCP address for the server to listen on,
+// in the form "host:port". If empty, ":http" (port 80) is used.
+// The service names are defined in RFC 6335 and assigned by IANA.
+// See net.Dial for details of the address format.
+//
+// e.g.
+//
+// 1. HttpsStart(":8080","server_crt","server_key")
+//
+// 2. HttpsStart("127.0.0.1:8080","server_crt","server_key")
+func (t *Tlnet) HttpsStart(addr string, server_crt, server_key string) (err error) {
+	t.handle()
 	t.Server.Addr = addr
-	err = t.Server.ListenAndServeTLS(certFile, keyFile)
-	if err != nil {
-		logger.Error("tlnet startTLS error:", err.Error())
+	if err = t.Server.ListenAndServeTLS(server_crt, server_key); err != nil {
+		logger.Error("[Tlnet start TLS failed]", err.Error())
+
 	}
 	return
 }
 
-/**http tls**/
-func (t *Tlnet) HttpStartTlsBytes(addr string, certBys, keyBys []byte) (err error) {
-	t._Handle()
+// HttpsStartWithBytes
+//
+// addr optionally specifies the TCP address for the server to listen on,
+// in the form "host:port". If empty, ":http" (port 80) is used.
+// The service names are defined in RFC 6335 and assigned by IANA.
+// See net.Dial for details of the address format.
+//
+// e.g.
+//
+// 1. HttpsStartWithBytes(":8080",[]byte(crtBytes),[]byte(keyBytes))
+//
+// 2. HttpsStartWithBytes("127.0.0.1:8080",[]byte(crtBytes),[]byte(keyBytes))
+func (t *Tlnet) HttpsStartWithBytes(addr string, crtBytes, keyBytes []byte) (err error) {
+	t.handle()
 	t.Server.Addr = addr
 	cfg := &tls.Config{}
 	var cert tls.Certificate
-	if cert, err = tls.X509KeyPair(certBys, keyBys); err == nil {
+	if cert, err = tls.X509KeyPair(crtBytes, keyBytes); err == nil {
 		cfg.NextProtos = append(cfg.NextProtos, "http/1.1")
 		cfg.Certificates = append(cfg.Certificates, cert)
 		t.TLSConfig(cfg)
@@ -214,11 +246,15 @@ func (t *Tlnet) HttpStartTlsBytes(addr string, certBys, keyBys []byte) (err erro
 			tlsListener := tls.NewListener(ln, cfg)
 			err = t.Server.Serve(tlsListener)
 		}
+		if err != nil {
+			logger.Error("[Tlnet start TLS by Bytes failed]", err.Error())
+		}
 	}
 	return
 }
 
-/**close service**/
+// Close
+// close tlnet service
 func (t *Tlnet) Close() (err error) {
 	if t.Server != nil {
 		return t.Server.Close()
@@ -226,130 +262,110 @@ func (t *Tlnet) Close() (err error) {
 	return
 }
 
-func (t *Tlnet) _Handle() {
-	for _, s := range t._processors {
-		t._serverMux.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: t._maxBytes, _stub: s, _tlnet: t}))
+func (t *Tlnet) handle() {
+	for _, s := range t.processors {
+		t.handlemux.Handle(s.pattern, &httpHandler{maxBytes: t.maxBytes, stub: s})
 	}
-	for _, s := range t._handlers {
-		t._serverMux.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: t._maxBytes, _stub: s, _tlnet: t}))
+	for _, s := range t.handlers {
+		t.handlemux.Handle(s.pattern, &httpHandler{maxBytes: t.maxBytes, stub: s})
 	}
-	for _, s := range t._staticHandlers {
-		t._serverMux.Handle(s._pattern, http.StripPrefix(s._pattern, &httpHandler{_maxBytes: t._maxBytes, _stub: s, _staticHandler: http.FileServer(http.Dir(s._dir)), _tlnet: t}))
+	for _, s := range t.staticHandlers {
+		t.handlemux.Handle(s.pattern, http.StripPrefix(s.pattern, &httpHandler{maxBytes: t.maxBytes, stub: s, staticHandler: http.FileServer(http.Dir(s.dir))}))
 	}
-	if len(t._wss) > 0 {
-		for _, s := range t._wss {
+	if len(t.wss) > 0 {
+		for _, s := range t.wss {
 			if s._handler != nil {
-				t._serverMux.Handle(s._pattern, s._handler)
+				t.handlemux.Handle(s._pattern, s._handler)
 			}
 		}
 	}
 }
 
 type httpHandler struct {
-	_maxBytes      int64
-	_stub          *stub
-	_staticHandler http.Handler
-	_tlnet         *Tlnet
+	maxBytes      int64
+	stub          *stub
+	staticHandler http.Handler
 }
 
 func (t *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	path, uri, url_uri := r.URL.Path, r.RequestURI, r.URL.RequestURI()
-	if t._maxBytes > 0 {
-		r.Body = http.MaxBytesReader(w, r.Body, t._maxBytes)
+	path := r.URL.Path
+	if t.maxBytes > 0 {
+		r.Body = http.MaxBytesReader(w, r.Body, t.maxBytes)
 	}
-	if len(t._tlnet._methodpattern) > 0 {
-		if url_uri[0] == '/' {
-			url_uri = url_uri[1:]
+	if t.stub != nil {
+		if t.stub.httpMethod != defaultMethod {
+			if !strings.EqualFold(string(t.stub.httpMethod), r.Method) {
+				w.WriteHeader(http.StatusMethodNotAllowed)
+				return
+			}
 		}
-		method, ok := "", false
-		if a, b := len(uri), len(url_uri); a != b {
-			root := r.RequestURI[:(a - b)]
-			method, ok = t._tlnet._methodpattern[root]
+		if t.staticHandler != nil && t.stub.filter != nil && t.stub.filter.notFoundhandler != nil {
+			if _, err := os.Stat(filepath.Join(t.stub.dir, path)); os.IsNotExist(err) {
+				if t.stub.filter.notFoundhandler != nil && t.stub.filter.notFoundhandler(w, r) {
+					return
+				}
+			}
 		}
-		if ok && !strings.EqualFold(method, r.Method) {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+		if t.stub.filter != nil {
+			if t.stub.filter.suffixMap.Len() > 0 {
+				if t.stub.filter.processSuffix(path, w, r) {
+					return
+				}
+			}
+			if t.stub.filter.matchMap.Len() > 0 {
+				if t.stub.filter.processGlobal(path, w, r) {
+					return
+				}
+			}
+		}
+		if t.stub.tProcessor != nil {
+			processorHandler(w, r, t.stub.tProcessor, t.stub.tftype)
 			return
 		}
+		if t.stub.handler != nil {
+			t.stub.handler(w, r)
+		}
 	}
 
-	// static
-	if t._staticHandler != nil && t._stub._filter != nil && t._stub._filter.notFoundhandler != nil {
-		dir := t._stub._dir
-		if dir != "" && dir[len(dir)-1:] != "/" {
-			dir = dir + "/"
-		}
-		if _, err := os.Stat(dir + path); os.IsNotExist(err) {
-			if t._stub._filter.notFoundhandler != nil && t._stub._filter.notFoundhandler(w, r) {
-				return
-			}
-		}
-	}
-	var filterPath string
-	if i := strings.LastIndex(uri, "?"); i > 0 {
-		filterPath = uri[:i]
-	} else {
-		filterPath = uri
-	}
-	if t._stub._filter != nil {
-		if t._stub._filter.suffixMap.Len() > 0 {
-			if t._stub._filter._processSuffix(filterPath, w, r) {
-				return
-			}
-		}
-		if t._stub._filter.matchMap.Len() > 0 {
-			if t._stub._filter._processGlobal(filterPath, w, r) {
-				return
-			}
-		}
-	}
-	if t._stub._processor != nil {
-		processorHandler(w, r, t._stub._processor, t._stub._ttype)
-		return
-	}
-	if t._stub._handler != nil {
-		t._stub._handler(w, r)
-	}
-
-	if t._staticHandler != nil {
-		t._staticHandler.ServeHTTP(w, r)
+	if t.staticHandler != nil {
+		t.staticHandler.ServeHTTP(w, r)
 	}
 }
 
 type wsHandler struct {
-	httpContextFunc  func(hc *HttpContext)
-	_Origin          string
-	_OriginFunc      func(origin *url.URL) bool
-	_MaxPayloadBytes int
-	_OnError         func(self *Websocket)
-	_OnOpen          func(hc *HttpContext)
+	httpContextFunc func(hc *HttpContext)
+	origin          string
+	originFunc      func(origin *url.URL) bool
+	maxPayloadBytes int
+	onError         func(self *Websocket)
+	onOpen          func(hc *HttpContext)
 }
 
 func (t *wsHandler) checkOrigin(config *websocket.Config, req *http.Request) (err error) {
-	config.Origin, err = websocket.Origin(config, req)
-	if err == nil && config.Origin == nil {
+	if config.Origin, err = websocket.Origin(config, req); err == nil && config.Origin == nil {
 		return fmt.Errorf("null origin")
 	}
-	if (t._Origin != "" && t._Origin != config.Origin.String()) || (t._OriginFunc != nil && !t._OriginFunc(config.Origin)) {
+	if (t.origin != "" && t.origin != config.Origin.String()) || (t.originFunc != nil && !t.originFunc(config.Origin)) {
 		return fmt.Errorf("error origin")
 	}
-	return err
+	return
 }
 
 // ServeHTTP implements the http.Handler interface for a WebSocket
 func (t *wsHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	s := websocket.Server{Handler: t.wsConnFunc, Handshake: t.checkOrigin}
+	s := websocket.Server{Handler: t.handle, Handshake: t.checkOrigin}
 	s.ServeHTTP(w, req)
 }
 
-func (t *wsHandler) wsConnFunc(ws *websocket.Conn) {
-	defer myRecover()
+func (t *wsHandler) handle(ws *websocket.Conn) {
+	defer tlnetRecover(nil)
 	defer ws.Close()
-	hc := newHttpContext(nil, ws.Request())
-	ws.MaxPayloadBytes, hc.WS._OnError = t._MaxPayloadBytes, t._OnError
+	hc := newHttpContextWithWebsocket(nil, ws.Request())
+	ws.MaxPayloadBytes, hc.WS._OnError = t.maxPayloadBytes, t.onError
 	hc.WS.Conn = ws
-	if t._OnOpen != nil {
-		go t._OnOpen(hc)
+	if t.onOpen != nil {
+		go t.onOpen(hc)
 	}
 	defer hc.WS._onErrorChan()
 	for hc.WS.Error == nil {
@@ -362,24 +378,5 @@ func (t *wsHandler) wsConnFunc(ws *websocket.Conn) {
 		if t.httpContextFunc != nil {
 			t.httpContextFunc(hc)
 		}
-	}
-}
-
-func processorHandler(w http.ResponseWriter, r *http.Request, processor thrift.TProcessor, _ttype TTYPE) {
-	var protocolFactory thrift.TProtocolFactory
-	switch _ttype {
-	case JSON:
-		protocolFactory = thrift.NewTJSONProtocolFactory()
-	case BINARY:
-		protocolFactory = thrift.NewTBinaryProtocolFactoryConf(&thrift.TConfiguration{})
-	case COMPACT:
-		protocolFactory = thrift.NewTCompactProtocolFactoryConf(&thrift.TConfiguration{})
-	}
-	transport := thrift.NewStreamTransport(r.Body, w)
-	ioProtocol := protocolFactory.GetProtocol(transport)
-	hc := newHttpContext(w, r)
-	_, err := processor.Process(context.WithValue(context.Background(), "HttpContext", hc), ioProtocol, ioProtocol)
-	if err != nil {
-		logger.Error("processorHandler Error:", err)
 	}
 }
