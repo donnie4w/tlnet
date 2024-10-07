@@ -33,9 +33,6 @@ type stub struct {
 }
 
 func newStub(pattern, dir string, filter *Filter, handler func(http.ResponseWriter, *http.Request), processor thrift.TProcessor, ttype tf_pco_type, method httpMethod) *stub {
-	if pattern[0] != '/' {
-		patternpanic(pattern)
-	}
 	return &stub{pattern, dir, filter, handler, processor, ttype, method}
 }
 
@@ -45,9 +42,6 @@ type wsStub struct {
 }
 
 func newWsStub(pattern string, handler *wsHandler) *wsStub {
-	if !strings.HasPrefix(pattern, "/") {
-		patternpanic(pattern)
-	}
 	return &wsStub{pattern, handler}
 }
 
@@ -263,22 +257,39 @@ func (t *Tlnet) Close() (err error) {
 }
 
 func (t *Tlnet) handle() {
+	m := make(map[string]byte, 0)
 	for _, s := range t.processors {
-		t.handlemux.Handle(s.pattern, &httpHandler{maxBytes: t.maxBytes, stub: s})
+		t.handlemux.Handle(checkpattern(m, s.pattern), &httpHandler{maxBytes: t.maxBytes, stub: s})
 	}
 	for _, s := range t.handlers {
-		t.handlemux.Handle(s.pattern, &httpHandler{maxBytes: t.maxBytes, stub: s})
+		t.handlemux.Handle(checkpattern(m, s.pattern), &httpHandler{maxBytes: t.maxBytes, stub: s})
 	}
 	for _, s := range t.staticHandlers {
-		t.handlemux.Handle(s.pattern, http.StripPrefix(s.pattern, &httpHandler{maxBytes: t.maxBytes, stub: s, staticHandler: http.FileServer(http.Dir(s.dir))}))
+		pattern := checkpattern(m, s.pattern)
+		t.handlemux.Handle(pattern, http.StripPrefix(pattern, &httpHandler{maxBytes: t.maxBytes, stub: s, staticHandler: http.FileServer(http.Dir(s.dir))}))
 	}
 	if len(t.wss) > 0 {
 		for _, s := range t.wss {
 			if s._handler != nil {
-				t.handlemux.Handle(s._pattern, s._handler)
+				t.handlemux.Handle(checkpattern(m, s._pattern), s._handler)
 			}
 		}
 	}
+}
+
+func checkpattern(m map[string]byte, pattern string) string {
+	pattern = strings.ReplaceAll(pattern, " ", "")
+	if pattern == "" {
+		panic("pattern must not be empty")
+	}
+	if !strings.HasPrefix(pattern, "/") {
+		panic("pattern is in an incorrect format and must start with a `/` : " + pattern)
+	}
+	if _, ok := m[pattern]; ok {
+		panic("pattern cannot be defined repeatedly : " + pattern)
+	}
+	m[pattern] = 0
+	return pattern
 }
 
 type httpHandler struct {
