@@ -57,7 +57,7 @@ func newHttpContext(w http.ResponseWriter, r *http.Request) *HttpContext {
 func newHttpContextWithWebsocket(w http.ResponseWriter, r *http.Request) *HttpContext {
 	hi := new(HttpInfo)
 	hi.Header, hi.Host, hi.Method, hi.Path, hi.RemoteAddr, hi.Uri, hi.UserAgent, hi.Referer = r.Header, r.Host, r.Method, r.URL.Path, r.RemoteAddr, r.RequestURI, r.UserAgent(), r.Referer()
-	return &HttpContext{w, r, hi, newWebsocket(util.RandId())}
+	return &HttpContext{w, r, hi, newWebsocket(util.UUID64())}
 }
 
 func (t *HttpContext) GetCookie(name string) (_r string, err error) {
