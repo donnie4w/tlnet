@@ -16,74 +16,74 @@ import (
 	"strings"
 )
 
-func (t *Tlnet) Handle(pattern string, handlerFunc func(hc *HttpContext)) {
+func (t *Tlnet) Handle(pattern string, contextfunc func(hc *HttpContext)) {
 	logger.Debug("[Handle] " + pattern)
-	t.handlerFunc(defaultMethod, pattern, handlerFunc)
+	t.addcontextfunc(defaultMethod, pattern, contextfunc)
 }
 
-func (t *Tlnet) POST(pattern string, handlerFunc func(hc *HttpContext)) {
+func (t *Tlnet) POST(pattern string, contextfunc func(hc *HttpContext)) {
 	logger.Debug("[POST] " + pattern)
-	t.handlerFunc(HttpPost, pattern, handlerFunc)
+	t.addcontextfunc(HttpPost, pattern, contextfunc)
 }
 
-func (t *Tlnet) PATCH(pattern string, handlerFunc func(hc *HttpContext)) {
+func (t *Tlnet) PATCH(pattern string, contextfunc func(hc *HttpContext)) {
 	logger.Debug("[PATCH] " + pattern)
-	t.handlerFunc(HttpPatch, pattern, handlerFunc)
+	t.addcontextfunc(HttpPatch, pattern, contextfunc)
 }
 
-func (t *Tlnet) PUT(pattern string, handlerFunc func(hc *HttpContext)) {
+func (t *Tlnet) PUT(pattern string, contextfunc func(hc *HttpContext)) {
 	logger.Debug("[PUT] " + pattern)
-	t.handlerFunc(HttpPut, pattern, handlerFunc)
+	t.addcontextfunc(HttpPut, pattern, contextfunc)
 }
 
-func (t *Tlnet) DELETE(pattern string, handlerFunc func(hc *HttpContext)) {
+func (t *Tlnet) DELETE(pattern string, contextfunc func(hc *HttpContext)) {
 	logger.Debug("[DELETE] " + pattern)
-	t.handlerFunc(HttpDelete, pattern, handlerFunc)
+	t.addcontextfunc(HttpDelete, pattern, contextfunc)
 }
 
-func (t *Tlnet) GET(pattern string, handlerFunc func(hc *HttpContext)) {
+func (t *Tlnet) GET(pattern string, contextfunc func(hc *HttpContext)) {
 	logger.Debug("[GET] " + pattern)
-	t.handlerFunc(HttpGet, pattern, handlerFunc)
+	t.addcontextfunc(HttpGet, pattern, contextfunc)
 }
 
-func (t *Tlnet) OPTIONS(pattern string, handlerFunc func(hc *HttpContext)) {
+func (t *Tlnet) OPTIONS(pattern string, contextfunc func(hc *HttpContext)) {
 	logger.Debug("[OPTIONS] " + pattern)
-	t.handlerFunc(HttpOptions, pattern, handlerFunc)
+	t.addcontextfunc(HttpOptions, pattern, contextfunc)
 }
 
-func (t *Tlnet) HEAD(pattern string, handlerFunc func(hc *HttpContext)) {
+func (t *Tlnet) HEAD(pattern string, contextfunc func(hc *HttpContext)) {
 	logger.Debug("[HEAD] " + pattern)
-	t.handlerFunc(HttpHead, pattern, handlerFunc)
+	t.addcontextfunc(HttpHead, pattern, contextfunc)
 }
 
-func (t *Tlnet) TRACE(pattern string, handlerFunc func(hc *HttpContext)) {
+func (t *Tlnet) TRACE(pattern string, contextfunc func(hc *HttpContext)) {
 	logger.Debug("[TRACE] " + pattern)
-	t.handlerFunc(HttpTrace, pattern, handlerFunc)
+	t.addcontextfunc(HttpTrace, pattern, contextfunc)
 }
 
-func (t *Tlnet) CONNECT(pattern string, handlerFunc func(hc *HttpContext)) {
+func (t *Tlnet) CONNECT(pattern string, contextfunc func(hc *HttpContext)) {
 	logger.Debug("[CONNECT] " + pattern)
-	t.handlerFunc(HttpConnect, pattern, handlerFunc)
+	t.addcontextfunc(HttpConnect, pattern, contextfunc)
 }
 
-func (t *Tlnet) HandleWebSocket(pattern string, handlerFunc func(hc *HttpContext)) {
+func (t *Tlnet) HandleWebSocket(pattern string, contextfunc func(hc *HttpContext)) {
 	logger.Debug("[HandleWebSocket] " + pattern)
-	t.wss = append(t.wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc}))
+	t.wss = append(t.wss, newWsStub(pattern, &wsHandler{httpContextFunc: contextfunc}))
 }
 
-func (t *Tlnet) HandleWebSocketBindOrigin(pattern, origin string, handlerFunc func(hc *HttpContext)) {
+func (t *Tlnet) HandleWebSocketBindOrigin(pattern, origin string, contextfunc func(hc *HttpContext)) {
 	logger.Debug("[HandleWebSocketBindOrigin] " + pattern)
-	t.wss = append(t.wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc, origin: origin}))
+	t.wss = append(t.wss, newWsStub(pattern, &wsHandler{httpContextFunc: contextfunc, origin: origin}))
 }
 
-func (t *Tlnet) HandleWebSocketBindOriginFunc(pattern string, handlerFunc func(hc *HttpContext), originFunc func(origin *url.URL) bool) {
+func (t *Tlnet) HandleWebSocketBindOriginFunc(pattern string, contextfunc func(hc *HttpContext), originFunc func(origin *url.URL) bool) {
 	logger.Debug("[HandleWebSocketBindOrigin] " + pattern)
-	t.wss = append(t.wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc, originFunc: originFunc}))
+	t.wss = append(t.wss, newWsStub(pattern, &wsHandler{httpContextFunc: contextfunc, originFunc: originFunc}))
 }
 
-func (t *Tlnet) HandleWebSocketBindConfig(pattern string, handlerFunc func(hc *HttpContext), config *WebsocketConfig) {
+func (t *Tlnet) HandleWebSocketBindConfig(pattern string, contextfunc func(hc *HttpContext), config *WebsocketConfig) {
 	logger.Debug("[HandleWebSocketBindConfig] " + pattern)
-	t.wss = append(t.wss, newWsStub(pattern, &wsHandler{httpContextFunc: handlerFunc, originFunc: config.OriginFunc, origin: config.Origin, maxPayloadBytes: config.MaxPayloadBytes, onError: config.OnError, onOpen: config.OnOpen}))
+	t.wss = append(t.wss, newWsStub(pattern, &wsHandler{httpContextFunc: contextfunc, originFunc: config.OriginFunc, origin: config.Origin, maxPayloadBytes: config.MaxPayloadBytes, onError: config.OnError, onOpen: config.OnOpen}))
 }
 
 func (t *Tlnet) HandleWithFilter(pattern string, _filter *Filter, handlerctx func(hc *HttpContext)) {
