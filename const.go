@@ -8,7 +8,6 @@
 package tlnet
 
 import (
-	"fmt"
 	"net/http"
 )
 
@@ -47,7 +46,3 @@ const (
 	HttpTrace     httpMethod = http.MethodTrace
 	defaultMethod httpMethod = ""
 )
-
-func patternpanic(pattern string) {
-	panic(fmt.Sprint("pattern error,[", pattern, "] must begin with '/'"))
-}
