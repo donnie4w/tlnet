@@ -19,37 +19,37 @@ import (
 	"sync"
 )
 
-// AddJsonProcessor   json protocol
-func (t *Tlnet) AddJsonProcessor(pattern string, processor thrift.TProcessor) {
+// HandleJsonProcessor   json protocol
+func (t *Tlnet) HandleJsonProcessor(pattern string, processor thrift.TProcessor) {
 	logger.Debug("[AddProcessor]:", pattern)
 	t.addProcessor(pattern, processor, JSON)
 }
 
-// AddBinaryProcessor binary protocol
-func (t *Tlnet) AddBinaryProcessor(pattern string, processor thrift.TProcessor) {
-	logger.Debug("[AddBinaryProcessor]:", pattern)
+// HandleBinaryProcessor binary protocol
+func (t *Tlnet) HandleBinaryProcessor(pattern string, processor thrift.TProcessor) {
+	logger.Debug("[HandleBinaryProcessor]:", pattern)
 	t.addProcessor(pattern, processor, BINARY)
 }
 
-// AddCompactProcessor compact protocol
-func (t *Tlnet) AddCompactProcessor(pattern string, processor thrift.TProcessor) {
-	logger.Debug("[AddCompactProcessor]:", pattern)
+// HandleCompactProcessor compact protocol
+func (t *Tlnet) HandleCompactProcessor(pattern string, processor thrift.TProcessor) {
+	logger.Debug("[HandleCompactProcessor]:", pattern)
 	t.addProcessor(pattern, processor, COMPACT)
 }
 
-// AddHandlerFunc 处理动态请求
-func (t *Tlnet) AddHandlerFunc(pattern string, f *Filter, handlerFunc func(http.ResponseWriter, *http.Request)) {
+// HandleFunc 处理动态请求
+func (t *Tlnet) HandleFunc(pattern string, f *Filter, handlerFunc func(http.ResponseWriter, *http.Request)) {
 	t.addhandlerFunc(defaultMethod, pattern, f, handlerFunc)
 }
 
-// AddStaticHandler 处理静态资源
-func (t *Tlnet) AddStaticHandler(pattern string, dir string, f *Filter, handlerFunc func(http.ResponseWriter, *http.Request)) {
+// HandleStaticFunc 处理静态资源
+func (t *Tlnet) HandleStaticFunc(pattern string, dir string, f *Filter, handlerFunc func(http.ResponseWriter, *http.Request)) {
 	t.addstatichandlerFunc("", pattern, dir, f, handlerFunc)
 }
 
-func (t *Tlnet) handlerFunc(method httpMethod, pattern string, handlerFunc func(hc *HttpContext)) {
+func (t *Tlnet) addcontextfunc(method httpMethod, pattern string, contextfunc func(hc *HttpContext)) {
 	t.addhandlerFunc(method, pattern, nil, func(w http.ResponseWriter, r *http.Request) {
-		handlerFunc(newHttpContext(w, r))
+		contextfunc(newHttpContext(w, r))
 	})
 }
 
