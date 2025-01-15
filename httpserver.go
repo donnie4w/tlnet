@@ -75,6 +75,8 @@ func (t *Tlnet) UseTlnetMuxWithLimit(limit int) *Tlnet {
 	return t
 }
 
+// UseServeMux use net/http ServeMux as an HTTP request multiplexer
+// https://pkg.go.dev/net/http#ServeMux
 func (t *Tlnet) UseServeMux() *Tlnet {
 	t.handlemux = http.NewServeMux()
 	t.Server.Handler = t.handlemux
@@ -106,8 +108,8 @@ type Tlnet struct {
 // tls.Config.SetSessionTicketKeys. To use
 // SetSessionTicketKeys, use Server.Serve with a TLS Listener
 // instead.
-func (t *Tlnet) TLSConfig(_TLSConfig *tls.Config) {
-	t.Server.TLSConfig = _TLSConfig
+func (t *Tlnet) TLSConfig(tlsConfig *tls.Config) {
+	t.Server.TLSConfig = tlsConfig
 }
 
 // ReadTimeout is the maximum duration for reading the entire
@@ -118,9 +120,9 @@ func (t *Tlnet) TLSConfig(_TLSConfig *tls.Config) {
 // decisions on each request body's acceptable deadline or
 // upload rate, most users will prefer to use
 // ReadHeaderTimeout. It is valid to use them both.
-func (t *Tlnet) ReadTimeout(_ReadTimeout time.Duration) {
-	logger.Debug("[ReadTimeout]:", _ReadTimeout)
-	t.Server.ReadTimeout = _ReadTimeout
+func (t *Tlnet) ReadTimeout(readTimeout time.Duration) {
+	logger.Debug("[ReadTimeout]:", readTimeout)
+	t.Server.ReadTimeout = readTimeout
 }
 
 // ReadHeaderTimeout is the amount of time allowed to read
@@ -129,9 +131,9 @@ func (t *Tlnet) ReadTimeout(_ReadTimeout time.Duration) {
 // is considered too slow for the body. If ReadHeaderTimeout
 // is zero, the value of ReadTimeout is used. If both are
 // zero, there is no timeout.
-func (t *Tlnet) ReadHeaderTimeout(_ReadHeaderTimeout time.Duration) {
-	logger.Debug("[ReadHeaderTimeout]:", _ReadHeaderTimeout)
-	t.Server.ReadHeaderTimeout = _ReadHeaderTimeout
+func (t *Tlnet) ReadHeaderTimeout(readHeaderTimeout time.Duration) {
+	logger.Debug("[ReadHeaderTimeout]:", readHeaderTimeout)
+	t.Server.ReadHeaderTimeout = readHeaderTimeout
 }
 
 // WriteTimeout is the maximum duration before timing out
@@ -139,18 +141,18 @@ func (t *Tlnet) ReadHeaderTimeout(_ReadHeaderTimeout time.Duration) {
 // request's header is read. Like ReadTimeout, it does not
 // let Handlers make decisions on a per-request basis.
 // A zero or negative value means there will be no timeout.
-func (t *Tlnet) WriteTimeout(_WriteTimeout time.Duration) {
-	logger.Debug("[WriteTimeout]:", _WriteTimeout)
-	t.Server.WriteTimeout = _WriteTimeout
+func (t *Tlnet) WriteTimeout(writeTimeout time.Duration) {
+	logger.Debug("[WriteTimeout]:", writeTimeout)
+	t.Server.WriteTimeout = writeTimeout
 }
 
 // IdleTimeout is the maximum amount of time to wait for the
 // next request when keep-alives are enabled. If IdleTimeout
 // is zero, the value of ReadTimeout is used. If both are
 // zero, there is no timeout.
-func (t *Tlnet) IdleTimeout(_IdleTimeout time.Duration) {
-	logger.Debug("[IdleTimeout]:", _IdleTimeout)
-	t.Server.IdleTimeout = _IdleTimeout
+func (t *Tlnet) IdleTimeout(idleTimeout time.Duration) {
+	logger.Debug("[IdleTimeout]:", idleTimeout)
+	t.Server.IdleTimeout = idleTimeout
 }
 
 // MaxHeaderBytes controls the maximum number of bytes the
@@ -158,9 +160,9 @@ func (t *Tlnet) IdleTimeout(_IdleTimeout time.Duration) {
 // values, including the request line. It does not limit the
 // size of the request body.
 // If zero, DefaultMaxHeaderBytes is used.
-func (t *Tlnet) MaxHeaderBytes(_MaxHeaderBytes int) {
-	logger.Debug("[MaxHeaderBytes]:", _MaxHeaderBytes)
-	t.Server.MaxHeaderBytes = _MaxHeaderBytes
+func (t *Tlnet) MaxHeaderBytes(maxHeaderBytes int) {
+	logger.Debug("[MaxHeaderBytes]:", maxHeaderBytes)
+	t.Server.MaxHeaderBytes = maxHeaderBytes
 }
 
 // SetMaxBytesReader
