@@ -47,9 +47,9 @@ func (t *Tlnet) HandleStaticFunc(pattern string, dir string, f *Filter, handlerF
 	t.addstatichandlerFunc("", pattern, dir, f, handlerFunc)
 }
 
-func (t *Tlnet) addcontextfunc(method httpMethod, pattern string, contextfunc func(hc *HttpContext)) {
+func (t *Tlnet) addcontextfunc(method httpMethod, pattern string, handlerctx func(hc *HttpContext)) {
 	t.addhandlerFunc(method, pattern, nil, func(w http.ResponseWriter, r *http.Request) {
-		contextfunc(newHttpContext(w, r))
+		handlerctx(newHttpContext(w, r))
 	})
 }
 
