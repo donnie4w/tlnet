@@ -38,6 +38,6 @@ func (l *logu) Debug(v ...interface{}) {
 
 func (l *logu) Error(v ...interface{}) {
 	if l.IsVaild {
-		l.logger.Fatal(v...)
+		l.logger.Println(v...)
 	}
 }
