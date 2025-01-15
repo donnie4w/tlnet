@@ -9,9 +9,7 @@ package tlnet
 
 import (
 	"fmt"
-	"github.com/donnie4w/simplelog/logging"
 	"net/http"
-	_ "net/http/pprof"
 	"testing"
 )
 
@@ -31,7 +29,7 @@ func interceptFilter() *Filter {
 	f := NewFilter()
 	//内置后缀拦截器
 	f.AddSuffixIntercept([]string{".jpg"}, func(hc *HttpContext) bool {
-		logging.Debug("suffix  path:" + hc.ReqInfo.Path)
+		fmt.Println("suffix  path:" + hc.ReqInfo.Path)
 		return false
 	})
 	//内置路径未找到拦截器
@@ -41,7 +39,7 @@ func interceptFilter() *Filter {
 	})
 	//自定义URL正则匹配规则拦截器
 	f.AddIntercept(".*?", func(hc *HttpContext) bool {
-		logging.Debug("intercept:", hc.ReqInfo.Uri)
+		fmt.Println("intercept:", hc.ReqInfo.Uri)
 		if hc.ReqInfo.Path == "" {
 			hc.Error("path is empty:"+hc.ReqInfo.Uri, http.StatusForbidden)
 			return true
