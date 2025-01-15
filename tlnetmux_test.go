@@ -9,7 +9,6 @@ package tlnet
 
 import (
 	"fmt"
-	"github.com/donnie4w/simplelog/logging"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -26,7 +25,7 @@ func TestTrieMux(t *testing.T) {
 	// Create a new TlnetMux instance
 	trieMux := NewTlnetMux()
 
-	// Add routes to the trie
+	// add routes to the trie
 	trieMux.Handle("/path", mockHandler("static path"))
 	trieMux.Handle("/path/*", mockHandler("wildcard path"))
 	trieMux.Handle("/user/:id", mockHandler("user with id"))
@@ -101,7 +100,7 @@ func Test_trie(t *testing.T) {
 
 	// Start HTTP server
 	addr := ":8080"
-	logging.Debug("Starting server at ", addr)
+	t.Log("Starting server at ", addr)
 	http.ListenAndServe(addr, trieMux)
 }
 
@@ -153,5 +152,25 @@ func TestTlnet(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		router.ServeHTTP(w, req)
 		t.Logf("Response %d: %s", i+1, w.Body.String())
+	}
+}
+
+func TestPath(t *testing.T) {
+	path := "/aaa/bbb/ccc"
+	n := len(path)
+	var get bool
+	partStart := 1
+	for i := 1; i < n; i++ {
+		get = false
+		if path[i] == '/' {
+			get = true
+		} else if i == n-1 {
+			i = n
+		}
+		if get || i == n {
+			part := path[partStart:i]
+			partStart = i + 1
+			fmt.Println(part)
+		}
 	}
 }
