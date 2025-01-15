@@ -28,10 +28,10 @@ func NewTlnetMuxWithLimit(limit int) TlnetMux {
 }
 
 func (r *serveMux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	handler, ok, path := r.trie.findHandler(req)
+	handler, ok, path := r.findHandler(req)
 	if ok {
 		handler.ServeHTTP(w, req)
-	} else if path != "" {
+	} else if path != "" && !strings.HasSuffix(path, "/") {
 		http.Redirect(w, req, path+"/", http.StatusMovedPermanently)
 	} else {
 		w.WriteHeader(http.StatusNotFound)
@@ -46,6 +46,13 @@ func (t *serveMux) HandleFunc(path string, handlerFunc func(http.ResponseWriter,
 	t.trie.handle(path, http.HandlerFunc(handlerFunc))
 }
 
+func (t *serveMux) findHandler(req *http.Request) (http.Handler, bool, string) {
+	if logger.IsVaild {
+		logger.Debug("[url.path]", req.URL.Path)
+	}
+	return t.trie.findHandler(req)
+}
+
 type trieNode struct {
 	children map[string]*trieNode
 	handler  http.Handler
@@ -56,20 +63,20 @@ type trieNode struct {
 
 type trie struct {
 	root *trieNode
-	m    *hashmap.LimitHashMap[uint64, *mkv]
+	m    *hashmap.LimitHashMap[uint64, http.Handler]
 }
 
 func newTrie() *trie {
 	return &trie{
 		root: &trieNode{children: make(map[string]*trieNode)},
-		m:    hashmap.NewLimitHashMap[uint64, *mkv](_SS),
+		m:    hashmap.NewLimitHashMap[uint64, http.Handler](_SS),
 	}
 }
 
 func newTrieWithLimit(limit int) *trie {
 	return &trie{
 		root: &trieNode{children: make(map[string]*trieNode)},
-		m:    hashmap.NewLimitHashMap[uint64, *mkv](limit),
+		m:    hashmap.NewLimitHashMap[uint64, http.Handler](limit),
 	}
 }
 
@@ -100,15 +107,13 @@ func (t *trie) handle(path string, handler http.Handler) {
 
 func (t *trie) findHandler(req *http.Request) (http.Handler, bool, string) {
 	path := req.URL.Path
-	if logger.IsVaild {
-		logger.Debug("[path]", path)
-	}
 	ph := util.Hash64([]byte(path))
-	if mkv, b := t.m.Get(ph); b {
-		mkv.RawQueryEncode(req)
-		return mkv.handle, b, ""
+
+	if h, b := t.m.Get(ph); b {
+		return h, b, ""
 	}
-	parts := strings.Split(path, "/")[1:]
+
+	parts := strings.Split(path[1:], "/")
 	node := t.root
 	var kvmap map[string]string
 	var nodewildcard *trieNode
@@ -123,7 +128,7 @@ func (t *trie) findHandler(req *http.Request) (http.Handler, bool, string) {
 			}
 		} else if node.param != nil {
 			if kvmap == nil {
-				kvmap = make(map[string]string)
+				kvmap = map[string]string{}
 			}
 			kvmap[node.param.path] = part
 			if node.wildcard != nil {
@@ -143,9 +148,18 @@ func (t *trie) findHandler(req *http.Request) (http.Handler, bool, string) {
 		}
 	}
 
-	if r, b := node.handler, node.handler != nil; b {
-		t.m.Put(ph, newmkv(r, kvmap).RawQueryEncode(req))
-		return r, b, ""
+	if r := node.handler; r != nil {
+		if len(kvmap) > 0 {
+			queryParams := req.URL.Query()
+			for k, v := range kvmap {
+				queryParams.Add(k, v)
+			}
+			req.URL.RawQuery = queryParams.Encode()
+		} else if len(path) < 256 {
+			t.m.Put(ph, r)
+		}
+		//t.m.Put(ph, newmkv(r, kvmap).RawQueryEncode(req))
+		return r, true, ""
 	}
 	return nil, false, ""
 }
