@@ -304,7 +304,9 @@ type httpHandler struct {
 }
 
 func (t *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
+	defer func() {
+		r.Body.Close()
+	}()
 	path := r.URL.Path
 	if t.maxBytes > 0 {
 		r.Body = http.MaxBytesReader(w, r.Body, t.maxBytes)
@@ -318,7 +320,7 @@ func (t *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		if t.staticHandler != nil && t.stub.filter != nil && t.stub.filter.notFoundhandler != nil {
 			if _, err := os.Stat(filepath.Join(t.stub.dir, path)); os.IsNotExist(err) {
-				if t.stub.filter.notFoundhandler != nil && t.stub.filter.notFoundhandler(w, r) {
+				if t.stub.filter.notFoundhandler(w, r) {
 					return
 				}
 			}
@@ -333,6 +335,11 @@ func (t *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				if t.stub.filter.processGlobal(path, w, r) {
 					return
 				}
+			}
+		}
+		if t.stub.filter != nil && t.stub.filter.allPathHandler != nil {
+			if t.stub.filter.allPathHandler(w, r) {
+				return
 			}
 		}
 		if t.stub.tProcessor != nil {
