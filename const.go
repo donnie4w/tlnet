@@ -18,6 +18,7 @@ type httpMethod string
 const (
 	_ tf_pco_type = iota
 	JSON
+	SIMPLEJSON
 	BINARY
 	COMPACT
 )
