@@ -18,6 +18,8 @@ func processorHandler(w http.ResponseWriter, r *http.Request, processor thrift.T
 	switch _ttype {
 	case JSON:
 		protocolFactory = thrift.NewTJSONProtocolFactory()
+	case SIMPLEJSON:
+		protocolFactory = thrift.NewTSimpleJSONProtocolFactoryConf(&thrift.TConfiguration{})
 	case BINARY:
 		protocolFactory = thrift.NewTBinaryProtocolFactoryConf(&thrift.TConfiguration{})
 	case COMPACT:
