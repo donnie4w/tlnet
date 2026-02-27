@@ -26,11 +26,12 @@ type Filter struct {
 	suffixMap       *hashmap.MapL[string, int8]                                          //map[string]int8  //suffix 后缀
 	suffixHandler   func(http.ResponseWriter, *http.Request) bool                        //bool为true时，执行func后，不再进行其他判断
 	matchMap        *hashmap.MapL[string, func(http.ResponseWriter, *http.Request) bool] //map[string]func(ResponseWriter, *Request) bool //正则匹配 bool为true时，执行func后，不再进行其他判断
+	allPathHandler  func(http.ResponseWriter, *http.Request) bool
 }
 
 // AddSuffixIntercept
 //
-// suffixs 后缀拦截，方法返回true则，则不执行Filter后的handlerFunc，直接返回
+// suffixs 后缀拦截，方法返回true时，则不执行Filter后的handlerFunc，直接返回
 func (t *Filter) AddSuffixIntercept(suffixs []string, handler func(hc *HttpContext) bool) {
 	for _, v := range suffixs {
 		if strings.Contains(v, ".") {
@@ -45,9 +46,18 @@ func (t *Filter) AddSuffixIntercept(suffixs []string, handler func(hc *HttpConte
 
 // AddPageNotFoundIntercept
 //
-// url路径找不到 ，方法返回true则，则不执行Filter后的handlerFunc，直接返回
+// url路径找不到 ，方法返回true时，则不执行Filter后的handlerFunc，直接返回
 func (t *Filter) AddPageNotFoundIntercept(handler func(hc *HttpContext) bool) {
 	t.notFoundhandler = func(w http.ResponseWriter, r *http.Request) bool {
+		return handler(newHttpContext(w, r))
+	}
+}
+
+// AddRootPathIntercept
+//
+// 拦截所有路径 ，方法返回true时，则不执行Filter后的handlerFunc，直接返回
+func (t *Filter) AddRootPathIntercept(handler func(hc *HttpContext) bool) {
+	t.allPathHandler = func(w http.ResponseWriter, r *http.Request) bool {
 		return handler(newHttpContext(w, r))
 	}
 }
