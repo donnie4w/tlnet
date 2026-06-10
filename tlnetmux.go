@@ -63,20 +63,20 @@ type trieNode struct {
 
 type trie struct {
 	root *trieNode
-	m    *hashmap.LimitHashMap[uint64, http.Handler]
+	m    *hashmap.LimitFifoMap[uint64, http.Handler]
 }
 
 func newTrie() *trie {
 	return &trie{
 		root: &trieNode{children: make(map[string]*trieNode)},
-		m:    hashmap.NewLimitHashMap[uint64, http.Handler](_SS),
+		m:    hashmap.NewLimitFifoMap[uint64, http.Handler](_SS),
 	}
 }
 
 func newTrieWithLimit(limit int) *trie {
 	return &trie{
 		root: &trieNode{children: make(map[string]*trieNode)},
-		m:    hashmap.NewLimitHashMap[uint64, http.Handler](limit),
+		m:    hashmap.NewLimitFifoMap[uint64, http.Handler](limit),
 	}
 }
 
