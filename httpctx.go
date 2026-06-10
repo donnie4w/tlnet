@@ -167,6 +167,7 @@ func (t *HttpContext) RedirectWithStatus(path string, status int) {
 	http.Redirect(t.w, t.r, path, status)
 }
 
+// FormFile 控件1个文件或获取第一个文件
 func (t *HttpContext) FormFile(key string) (multipart.File, *multipart.FileHeader, error) {
 	if logger.IsVaild {
 		logger.Debug("[FormFile] " + key)
@@ -174,11 +175,20 @@ func (t *HttpContext) FormFile(key string) (multipart.File, *multipart.FileHeade
 	return t.r.FormFile(key)
 }
 
-func (t *HttpContext) FormFiles(key string) *multipart.Form {
+// FormFiles 控件多个文件
+func (t *HttpContext) FormFiles(key string) []*multipart.FileHeader {
 	if logger.IsVaild {
 		logger.Debug("[FormFiles] " + key)
 	}
-	return t.r.MultipartForm
+	files := t.r.MultipartForm.File[key]
+	if len(files) > 0 {
+		beans := make([]*multipart.FileHeader, len(files))
+		for i, fileHeader := range files {
+			beans[i] = fileHeader
+		}
+		return beans
+	}
+	return nil
 }
 
 func (t *HttpContext) Request() *http.Request {
